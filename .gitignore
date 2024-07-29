@@ -1,0 +1,9 @@
+__pycache__
+*/__pycache__
+doc/
+logs/
+conf/*
+download/*
+.venv/
+.env
+temp/
