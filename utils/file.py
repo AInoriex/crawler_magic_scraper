@@ -21,10 +21,22 @@ def save_json_to_file(data_dict:dict)->bool:
     # output_path = cfg["common"]["tmp_folder_path"]
     output_path = os.getenv("TMP_FOLDER_PATH")
     os.makedirs(output_path, exist_ok=True)
-    log_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
+    now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
     try:
-        with open(f"{output_path}/{log_time}.json", "w", encoding="utf8") as f:
+        with open(f"{output_path}/{now_time}.json", "w", encoding="utf8") as f:
             json.dump(data_dict, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print("[ERROR] save_json_to_file failed", e)
+        return False
+    else:
+        return True
+
+def save_json_to_file(data:any, save_path:str)->bool:
+    ''' 保存json文件到本地 '''
+    os.makedirs(save_path, exist_ok=True)
+    try:
+        with open(save_path, "w", encoding="utf8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print("[ERROR] save_json_to_file failed", e)
         return False
@@ -36,29 +48,15 @@ async def save_json_to_file(data:any)->bool:
     # output_path = cfg["common"]["tmp_folder_path"]
     output_path = os.getenv("TMP_FOLDER_PATH")
     os.makedirs(output_path, exist_ok=True)
-    log_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
+    now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
     try:
-        with open(f"{output_path}/{log_time}.json", "w", encoding="utf8") as f:
+        with open(f"{output_path}/{now_time}.json", "w", encoding="utf8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print("[ERROR] save_json_to_file failed", e)
         return False
     else:
         return True
-
-# def save_any_to_file()->bool:
-#     ''' 保存任意数据到本地 '''
-#     output_path = cfg["common"]["tmp_folder_path"]
-#     os.makedirs(output_path, exist_ok=True)
-#     log_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
-#     try:
-#         with open(f"{output_path}/{log_time}_raw.txt", "w", encoding="utf8") as f:
-#             json.dump(data_dict, f, indent=4, ensure_ascii=False)
-#     except Exception as e:
-#         print("[ERROR] save_json_to_file failed", e)
-#         return False
-#     else:
-#         return True
 
 def dump_info(info_dict, out_file):
     ''' 保存json文件到本地

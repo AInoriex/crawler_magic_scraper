@@ -1,21 +1,15 @@
-# from utils.tool import load_cfg
-# cfg = load_cfg("config.json")
-# from config import Config
-# config = Config()
-# config.load_cfg("conf/config.json")
-# cfg = config.cfg
-
-import time
-import random
-from os import path, makedirs, walk, getenv
-from handler.info import dump_info
-from utils.utime import random_sleep
-import yt_dlp
-from yt_dlp import YoutubeDL
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from datetime import datetime
 import pytz
+from os import path, makedirs, walk, getenv
+from datetime import datetime
+from uuid import uuid4
+from json import dumps
+from traceback import format_exception # Python 3.10+
+from urllib.parse import urljoin, urlparse, unquote
+
+from database import ytb_model, ytb_api
+from utils.utime import random_sleep, parse_time_string_with_colon
 from youtubesearchpython import Playlist, playlist_from_channel_id
+from youtubesearchpython import ChannelsSearch
 
 MAX_RETRY = int(getenv("YTB_MAX_RETRY"))
 
@@ -28,89 +22,6 @@ def make_path(save_path):
     makedirs(save_audio_path, exist_ok=True)
     makedirs(save_info_path, exist_ok=True)
     return save_audio_path, save_info_path
-
-
-# 生成视频信息（yt_dlp只获取信息不下载）
-def generate_video_info(vid, ydl:YoutubeDL):
-    video_info = ydl.extract_info(vid, download=False, process=False)
-
-    info_dict = {
-        "id": video_info["id"],
-        "title": video_info["title"],
-        "full_url": video_info["webpage_url"],
-        "author": video_info["uploader_id"],
-        "duration": video_info["duration"],
-        "categories": video_info["categories"],
-        "tags": video_info["tags"],
-        "view_count": video_info["view_count"],
-        "comment_count": video_info["comment_count"],
-        "follower_count": video_info["channel_follower_count"],
-        "upload_date": video_info["upload_date"],
-    }
-    return info_dict
-
-
-# 下载普通油管链接(支持只有请求参数v)
-# exp.  https://www.youtube.com/watch?v=6s416NmSFmw&list
-def download_by_watch_url(video_url, save_path, __retry=MAX_RETRY):
-    print(f"Yt-dlp > download_by_watch_url参数 video_url:{video_url} save_path:{save_path} retry:{__retry}")
-    try:
-        save_audio_path, save_info_path = make_path(save_path)
-        ydl_opts = load_options(save_audio_path)
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = generate_video_info(video_url, ydl)
-            vid = info_dict["id"]
-            save_to_json_file = f"{save_info_path}/{vid}.json"
-
-            ydl.download(vid)
-            dump_info(info_dict, save_to_json_file)
-            print(f"Yt-dlp > download_by_watch_url生成下载信息：{save_to_json_file}")
-    except Exception as e:
-        if __retry > 0:
-            __retry = __retry - 1
-            random_sleep(rand_st=5, rand_range=5)
-            return download_by_watch_url(video_url, save_path, __retry=__retry)
-        else:
-            save_to_fail_file = f"{save_info_path}/{vid}.fail.json"
-            dump_info(info_dict, save_to_fail_file)
-            raise e
-    else:
-        # return path.join(save_audio_path, f"{vid}.webm")
-        return try_to_get_file_name(save_audio_path, vid, path.join(save_audio_path, f"{vid}.webm"))
-
-# 下载油管播放列表链接
-# exp.  
-def download_by_playlist(playlist_url, save_path, max_limit=0):
-    save_audio_path, save_info_path = make_path(save_path)
-
-    success_num = 0
-    ydl_opts = load_options(save_audio_path)
-    result_paths = []
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        author_info = ydl.extract_info(playlist_url, download=False, process=False)
-
-        for entry in author_info["entries"]:
-            if success_num >= max_limit and max_limit != 0:
-                print("Yt-dlp > YouTube: Successfully downloaded",
-                    max_limit,
-                    "video(s). Quitting.",
-                )
-                break
-            vid = entry["id"]
-            info_dict = generate_video_info(vid, ydl)
-
-            save_to_json_file = f"{save_info_path}/{vid}.json"
-            try:
-                ydl.download(vid)
-                time.sleep(random.uniform(5, 10))  # sleep in case got banned by YouTube
-                dump_info(info_dict, save_to_json_file)
-                result_paths.append(path.join(save_audio_path, f"{vid}.webm"))
-                success_num += 1
-            except Exception as e:
-                print("Yt-dlp >  YouTube: \033[31mEXCEPTION OCCURED.\033[0m")
-                print(e)
-                continue
-    return result_paths
 
 
 def try_to_get_file_name(save_dir:str, vid:str, default_name='')->str:
@@ -130,7 +41,7 @@ def try_to_get_file_name(save_dir:str, vid:str, default_name='')->str:
 
 def is_touch_fish_time()->bool:
     ''' 判断是否能摸鱼，以Youtube总部地区为限制 '''
-    ytb_timezone = "'America/Los_Angeles'"
+    ytb_timezone = "America/Los_Angeles"
 
     # 获取当前时间
     now_utc = datetime.now(pytz.utc)
@@ -145,31 +56,117 @@ def is_touch_fish_time()->bool:
     
     # 判断是否在办公时间内(早上9点到下午5点)
     if 9 <= current_hour < 17+1:
-        print(f"摸鱼判断 > 当地时区 {ytb_timezone} | 当地时间 {current_hour}:{current_mint}")
+        print(f"[×] 非摸鱼时间 > 当地时区 {ytb_timezone} | 当地时间 {current_hour}:{current_mint}")
         return False
     else:
+        print(f"[√] 摸鱼时间 > 当地时区 {ytb_timezone} | 当地时间 {current_hour}:{current_mint}")
         return True
 
 
-def get_channel_playlist(channel_id:str, __retry:3):
-    ''' 获取频道下所有视频 '''
-    # channel_id = "UC_aEa8K-EOJ3D6gOs7HcyNg" # NoCopyrightSounds
+def save_channel_all_videos(channel_id:str, language:str, __retry:int=3)->tuple[int, int]:
+    ''' 获取并保存频道下所有视频
+    @channel_id:str 频道id
+    @lanuage:str    频道视频语言
+    '''
+    # channel_id = "UC6Q8f2fK10PLMo4kkiBSCpXA" # Đậu Phộng TV
+    is_first = True
+    page_count = int(0) #总视频数
+    total_videos_count = int(0) #总页数
+    ret = (total_videos_count, page_count)
     try:
-        playlist = Playlist(playlist_from_channel_id(channel_id))
-
-        print(f'Videos Retrieved: {len(playlist.videos)}')
-
-        while playlist.hasMoreVideos:
-            print('Getting more videos...')
-            playlist.getNextVideos()
-            print(f'Videos Retrieved: {len(playlist.videos)}')
+        # playlist = Playlist(playlist_from_channel_id(channel_id))
+        # print(f'Videos Retrieved: {len(playlist.videos)}')
+        # if len(playlist.videos) > 0:
+        #     for pl in playlist.videos:
+        #         dbVideo = format_search_into_video(playlist=pl, language=language)
+        #         ytb_api.create_video(dbVideo)
+        while 1:
+            page_count += 1
+            if is_first:
+                playlist = Playlist(playlist_from_channel_id(channel_id))
+                is_first = False
+            else:
+                playlist.getNextVideos()
+            cur_len_video = len(playlist.videos)
+            actual_len = cur_len_video - total_videos_count
+            print(f'get_playlist_by_channelid > Playlist retrieved new {actual_len} videos')
+            if cur_len_video > 0:
+                for pv in playlist.videos[total_videos_count:-1]:
+                    db_video = format_search_into_video(playlist=pv, language=language)
+                    if db_video != None:
+                        ytb_api.create_video(db_video)
+                    else:
+                        print(f"get_playlist_by_channelid > format_search_into_video failed. video:{pv}")
+                else:
+                    print(f"get_playlist_by_channelid > Create page:{page_count} of videos done, len_playlist_videos:{cur_len_video}")
+                    total_videos_count = cur_len_video
+            if not playlist.hasMoreVideos:
+                print(f"get_playlist_by_channelid > Get no more pages playlist videos, now page_count:{page_count}.")
+                break
+            if is_touch_fish_time():
+                random_sleep(rand_st=5, rand_range=10) #请求失败等待5-15s
+            else:
+                random_sleep(rand_st=20, rand_range=20) #请求失败等待20-40s(非摸鱼时间)
 
     except Exception as e:
-        if __retry > 0:
-            __retry = __retry - 1
-            random_sleep(rand_st=5, rand_range=5)
-            return download_by_watch_url(video_url, save_path, __retry=__retry)
-        else:
-            raise e
+        err_str = "".join(format_exception(e)).strip()
+        print(f"get_playlist_by_channelid > ERROR | {err_str}")
+        # if __retry > 0:
+        #     random_sleep(rand_st=5, rand_range=5)
+        #     return get_playlist_by_channelid(channel_id, language, __retry=__retry-1)
+        raise Exception(err_str)
     else:
-        print('Found all the videos.')
+        print(f"get_playlist_by_channelid > Found all the videos. Total retrieved:{total_videos_count}")
+    finally:
+        ret = (total_videos_count, page_count)
+        return ret
+
+
+def format_search_into_video(playlist:dict, language:str)-> ytb_model.Video:
+    ''' 格式化youtubesearchpython.Playlist为db.ytb_model.Video '''
+    # Todo 预检验
+    if not (playlist.get('id') and playlist.get('link')):
+        return None
+    vid = "ytb_"+str(playlist.get('id', uuid4()))
+    cloud_type = int(0)
+    cloud_path = str('')
+    position = int(3) # 3:qw
+    source_type = int(3) # 3:youtube
+    source_link = str(playlist.get('link'))
+    duration_str = str(playlist.get('duration'))
+    duration = parse_time_string_with_colon(duration_str) if duration_str else 0
+    info = dumps(playlist)
+    return ytb_model.Video(
+        vid=vid,
+        position=position,
+        source_type=source_type,
+        cloud_type=cloud_type,
+        cloud_path=cloud_path,
+        source_link=source_link,
+        language=language,
+        duration=duration,
+        info=info
+    )
+
+def get_youtuber_channel_id(channel_url:str)->str:
+    ''' 获取频道id '''
+    # https://www.youtube.com/@NoCopyrightSounds
+    channel_name = ""
+    
+     # 解析URL
+    parsed_url = urlparse(channel_url)
+    path = parsed_url.path
+    
+    # 判断路径是以'@'还是'/c/'开始，并提取频道名
+    if path.startswith("/@"):
+        channel_name = path[2:].split('/')[0]
+    elif path.startswith("/c/"):
+        # 解码URL编码字符
+        channel_name = unquote(path[3:].split('/')[0])
+    else:
+        raise ValueError("detect youtube channel url failed")
+    channelsSearch = ChannelsSearch(query=channel_name, limit=1, language="en", region='US') 
+    # print(channelsSearch.result())
+    search_result = channelsSearch.result()["result"][0]
+    channel_id = search_result.get("id")
+    return channel_id
