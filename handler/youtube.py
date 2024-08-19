@@ -5,7 +5,7 @@ from uuid import uuid4
 from json import dumps
 from traceback import format_exception # Python 3.10+
 from urllib.parse import urljoin, urlparse, unquote
-
+from time import sleep
 from database import ytb_model, ytb_api
 from utils.utime import random_sleep, parse_time_string_with_colon
 from youtubesearchpython import Playlist, playlist_from_channel_id
@@ -95,6 +95,7 @@ def save_channel_all_videos(channel_id:str, language:str, __retry:int=3)->tuple[
                     db_video = format_search_into_video(playlist=pv, language=language)
                     if db_video != None:
                         ytb_api.create_video(db_video)
+                        sleep(1)
                     else:
                         print(f"get_playlist_by_channelid > format_search_into_video failed. video:{pv}")
                 else:
@@ -132,6 +133,7 @@ def format_search_into_video(playlist:dict, language:str)-> ytb_model.Video:
     cloud_path = str('')
     position = int(3) # 3:qw
     source_type = int(3) # 3:youtube
+    # source_type = int(0) # 0:save in db but not download
     source_link = str(playlist.get('link'))
     duration_str = str(playlist.get('duration'))
     duration = parse_time_string_with_colon(duration_str) if duration_str else 0
