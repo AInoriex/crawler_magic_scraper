@@ -70,7 +70,7 @@ def create_video(video:Video):
     # url = getenv("DATABASE_CREATE_API")
     url = "%s?sign=%d"%(getenv("DATABASE_CREATE_API"), get_time_stamp())
     req = video.dict()
-    resp = post(url=url, json=req)
+    resp = post(url=url, json=req, timeout=5, verify=False)
     assert resp.status_code == 200
     resp_json = resp.json()
     # print("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
