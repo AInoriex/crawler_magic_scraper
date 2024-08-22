@@ -67,23 +67,27 @@ def update_status(video:Video):
 
 def create_video(video:Video):
     ''' 创建ytb记录 '''
-    # url = getenv("DATABASE_CREATE_API")
-    url = "%s?sign=%d"%(getenv("DATABASE_CREATE_API"), get_time_stamp())
-    req = video.dict()
-    resp = post(url=url, json=req, timeout=5, verify=False)
-    assert resp.status_code == 200
-    resp_json = resp.json()
-    # print("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
-    resp_code = resp_json.get("code")
-    if resp_code == 0:
-        # print(f"create_video > 创建数据成功 req:{req}, resp:{resp_json}")
-        print(f"create_video > 创建数据成功 vid:{req.get('vid')}, link:{req.get('source_link')}")
-    elif resp_code == 25000:
-        print(f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")
-    else:
-    # elif resp_code != 0:
-        print(f"create_video > 资源创建失败, req:{req}, resp:{resp.content}")
-        raise Exception(f"创建数据接口返回失败, req:{req}, resp:{resp.content}")
+    try:
+        # url = getenv("DATABASE_CREATE_API")
+        url = "%s?sign=%d"%(getenv("DATABASE_CREATE_API"), get_time_stamp())
+        req = video.dict()
+        resp = post(url=url, json=req, timeout=5, verify=False)
+        assert resp.status_code == 200
+        resp_json = resp.json()
+        # print("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
+        resp_code = resp_json.get("code")
+        if resp_code == 0:
+            # print(f"create_video > 创建数据成功 req:{req}, resp:{resp_json}")
+            print(f"create_video > 创建数据成功 vid:{req.get('vid')}, link:{req.get('source_link')}")
+        elif resp_code == 25000:
+            print(f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")
+        else:
+        # elif resp_code != 0:
+            print(f"create_video > 资源创建失败, req:{req}, resp:{resp.content}")
+            raise Exception(f"创建数据接口返回失败, req:{req}, resp:{resp.content}")
+    except Exception as e:
+        print("create_video > 未知错误: " + e.__str__)
+        return
 
 if __name__ == "__main__":
     v = get_download_list()
