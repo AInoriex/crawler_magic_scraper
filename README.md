@@ -2,7 +2,7 @@
 
 ## Description
 
-​	本项目用于批量从数据库获取待下载链接，并采用 `yt-dlp` 工具下载油管视频到本地，并上传云端(OBS or COS)
+​	本项目用于采集油管视频页url，目前只支持批量获取油管博主主页下所有视频。
 
 
 
@@ -24,33 +24,37 @@
    LOG_PATH=logs
    DOWNLOAD_PATH=download
    TMP_FOLDER_PATH=temp
-   HTTP_PROXY=
+   PROCESS_NUM=3
+   LIMIT_FAIL_COUNT=5
+   LIMIT_LAST_COUNT=10
    
    # DATABASE
-   DATABASE_HOST=
-   DATABASE_PORT=3306
-   DATABASE_USER=
-   DATABASE_PASS=
-   DATABASE_DB=crawler
+   DATABASE_GET_API=https://xxx/ytb_get_download_list
+   DATABASE_UPDATE_API=https://xxx/ytb_update_status
+   DATABASE_CREATE_API=https://xxx/ytb_create_record
+   
+   # LARK
+   NOTICE_WEBHOOK=https://open.feishu.cn/open-apis/bot/v2/hook/xxx-xxx
    ```
-
-3. 安装反BOT校验插件，详见 https://github.com/coletdjnz/yt-dlp-youtube-oauth2
-
-   ```python
-   python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
-   ```
-
-   - 使用参数`--username oauth2 --password ''` 执行 `yt-dlp`
-   - 首次使用在 https://www.google.com/device 添加设备码
 
 3. 运行程序
 
-4. （施工中...）
+   - 批量处理：需要填写 `target_youtuber_channel_urls` 批量博主主页链接 和 `target_language` 目标语言
+   
+      ```
+      python ytb_scrape.py
+      ```
+   
+   - 单个处理：需要填写 `target_youtuber_channel_urls` 批量博主主页链接 和 `target_language` 目标语言
+   
+     ```
+     python ytb_scrape_arg.py ms https://www.youtube.com/@AlyssaDezekTV/videos
+     ```
 
 
 
 ## 特别鸣谢
 
-​	[yt-dlp/yt-dlp: A feature-rich command-line audio/video downloader (github.com)](https://github.com/yt-dlp/yt-dlp)
+​	[alexmercerind/youtube-search-python](https://github.com/alexmercerind/youtube-search-python)
 
 ​	
