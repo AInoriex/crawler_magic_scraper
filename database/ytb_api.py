@@ -71,7 +71,7 @@ def create_video(video:Video):
         # url = getenv("DATABASE_CREATE_API")
         url = "%s?sign=%d"%(getenv("DATABASE_CREATE_API"), get_time_stamp())
         req = video.dict()
-        resp = post(url=url, json=req, timeout=5, verify=False)
+        resp = post(url=url, json=req, timeout=5, verify=True)
         assert resp.status_code == 200
         resp_json = resp.json()
         # print("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
@@ -86,7 +86,8 @@ def create_video(video:Video):
             print(f"create_video > 资源创建失败, req:{req}, resp:{resp.content}")
             raise Exception(f"创建数据接口返回失败, req:{req}, resp:{resp.content}")
     except Exception as e:
-        print("create_video > 未知错误: " + e.__str__)
+        print("create_video > 未知错误")
+        print(e)
         return
 
 if __name__ == "__main__":

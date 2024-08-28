@@ -83,7 +83,7 @@ def save_channel_all_videos(channel_id:str, language:str, __retry:int=3)->tuple[
         while 1:
             page_count += 1
             if is_first:
-                playlist = Playlist(playlist_from_channel_id(channel_id), timeout=5)
+                playlist = Playlist(playlist_from_channel_id(channel_id), timeout=10)
                 is_first = False
             else:
                 playlist.getNextVideos()

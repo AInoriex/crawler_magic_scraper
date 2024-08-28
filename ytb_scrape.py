@@ -27,12 +27,40 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 ''' 连续处理任务限制数 '''
 
 # 目标列表
-target_language = ""
+target_language = "th"
 target_youtuber_channel_urls = [
     # "https://www.youtube.com/@BaoQuandoinhandan/videos",
     # "https://www.youtube.com/@vtcnow/videos",
     # "https://www.youtube.com/@HuynhDuyKhuongofficial/videos",
     # "https://www.youtube.com/@thuyetphapthichdaothinh/videos",
+
+    # Tai
+    # "https://www.youtube.com/@Ch3Thailand/videos",
+    # "https://www.youtube.com/@one31official/videos",
+    # "https://www.youtube.com/@CHANGE2561/videos",
+    # "https://www.youtube.com/@CH3Plus/videos",
+    # "https://www.youtube.com/@pigkaploy/videos",
+    # "https://www.youtube.com/@genierock/videos",
+    # "https://www.youtube.com/@zbingz",
+    # "https://www.youtube.com/@BieTheSka",
+    # "https://www.youtube.com/@KaykaiSalaiderChannel",
+    # "https://www.youtube.com/@VrzoTvThailand",
+    # "https://www.youtube.com/@mnjtv2020",
+    # "https://www.youtube.com/@yimyamtv", # redo
+    # "https://www.youtube.com/@primkung.official", # redo
+    # "https://www.youtube.com/@PEACHEATLAEK", # redo
+    # "https://www.youtube.com/@kamsingfamilychannel", # redo
+
+    # Id
+    "https://www.youtube.com/@MDEntertainment/videos",
+    "https://www.youtube.com/@RhomaIramaOfficial/videos",
+    "https://www.youtube.com/@corbuzier/videos",
+    "https://www.youtube.com/@ReyUtamiBenuaEntertainment/videos",
+    "https://www.youtube.com/@Ftvhits/videos",
+    "https://www.youtube.com/@CERITAUMSU/videos",
+    "https://www.youtube.com/@UMSUMedan/videos",
+    "https://www.youtube.com/@AkbarFaizalUncensored/videos",
+    "https://www.youtube.com/@CNBC_ID/videos"
 ]
 
 target_youtuber_channel_ids = []
