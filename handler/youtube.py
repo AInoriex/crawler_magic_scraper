@@ -13,16 +13,18 @@ from youtubesearchpython import ChannelsSearch
 
 MAX_RETRY = int(getenv("YTB_MAX_RETRY"))
 
-# 预创建下载目录
-# |—— audio
-# |—— info
 def make_path(save_path):
+    ''' 预创建下载目录
+    @ 文件目录结构
+        ├── audio
+        
+        └── info
+    '''
     save_audio_path = path.join(save_path, "audio")
     save_info_path = path.join(save_path, "info")
     makedirs(save_audio_path, exist_ok=True)
     makedirs(save_info_path, exist_ok=True)
     return save_audio_path, save_info_path
-
 
 def try_to_get_file_name(save_dir:str, vid:str, default_name='')->str:
     ''' 尝试获取下载文件名 '''
@@ -37,7 +39,6 @@ def try_to_get_file_name(save_dir:str, vid:str, default_name='')->str:
     if ret_name == "":
         ret_name = default_name
     return ret_name
-
 
 def is_touch_fish_time()->bool:
     ''' 判断是否能摸鱼，以Youtube总部地区为限制 '''
@@ -62,8 +63,7 @@ def is_touch_fish_time()->bool:
         print(f"[√] 摸鱼时间 > 当地时区 {ytb_timezone} | 当地时间 {current_hour}:{current_mint}")
         return True
 
-
-def save_channel_all_videos(channel_id:str, language:str, __retry:int=3)->tuple[int, int]:
+def save_channel_all_videos(channel_id:str, language:str, __retry:int=MAX_RETRY)->tuple[int, int]:
     ''' 获取并保存频道下所有视频
     @channel_id:str 频道id
     @lanuage:str    频道视频语言
@@ -122,6 +122,54 @@ def save_channel_all_videos(channel_id:str, language:str, __retry:int=3)->tuple[
         ret = (total_videos_count, page_count)
         return ret
 
+def save_channel_all_videos_local(channel_id:str, save_path:str)->tuple[int, int]:
+    ''' 获取并保存频道下所有视频
+    @channel_id:str 频道id
+    @lanuage:str    频道视频语言
+    @save_path:str  结果文件保存路径
+    '''
+    is_first = True
+    page_count = int(0) #总视频数
+    total_videos_count = int(0) #总页数
+    ret = (total_videos_count, page_count)
+    try:
+        f = open(save_path, mode="w", encoding="utf-8")
+        while 1:
+            page_count += 1
+            if is_first:
+                playlist = Playlist(playlist_from_channel_id(channel_id), timeout=5)
+                is_first = False
+            else:
+                playlist.getNextVideos()
+            cur_len_video = len(playlist.videos)
+            actual_len = cur_len_video - total_videos_count
+            print(f'save_channel_all_videos_local > Playlist retrieved new {actual_len} videos')
+            if cur_len_video > 0:
+                for pv in playlist.videos[total_videos_count:-1]:
+                    source_link = pv.get('link', '')
+                    f.write(source_link)
+                    f.write("\n")
+                else:
+                    print(f"save_channel_all_videos_local > Create page:{page_count} of videos done, len_playlist_videos:{cur_len_video}")
+                    total_videos_count = cur_len_video
+                    f.flush()
+            if not playlist.hasMoreVideos:
+                print(f"save_channel_all_videos_local > Get no more pages playlist videos, now page_count:{page_count}.")
+                f.close()
+                break
+            if is_touch_fish_time():
+                random_sleep(rand_st=5, rand_range=10) #请求失败等待5-15s
+            else:
+                random_sleep(rand_st=20, rand_range=20) #请求失败等待20-40s(非摸鱼时间)
+    except Exception as e:
+        err_str = "".join(format_exception(e)).strip()
+        print(f"save_channel_all_videos_local > ERROR | {err_str}")
+        raise Exception(err_str)
+    else:
+        print(f"save_channel_all_videos_local > Found all the videos. Total retrieved:{total_videos_count}")
+    finally:
+        ret = (total_videos_count, page_count)
+        return ret
 
 def format_search_into_video(playlist:dict, language:str)-> ytb_model.Video:
     ''' 格式化youtubesearchpython.Playlist为db.ytb_model.Video '''
