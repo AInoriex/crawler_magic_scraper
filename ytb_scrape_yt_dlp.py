@@ -6,9 +6,11 @@ import os
 import time
 from handler.youtube import save_channel_all_videos, get_youtuber_channel_id
 from utils import logger
+from database import ytb_api
 from utils.utime import random_sleep, get_now_time_string, format_second_to_time_string
 from utils.lark import alarm_lark_text
 from utils.ip import get_local_ip, get_public_ip
+from handler.yt_dlp import get_ytb_blogger_url
 # from utils.cos import upload_file
 # from utils.obs import upload_file
 
@@ -27,59 +29,32 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 # 目标列表
 target_language = "vi"
 target_youtuber_blogger_urls = [
-    "https://www.youtube.com/@toancanh24"
+    # "https://www.youtube.com/@daihanoi-htv/videos"
+    # "https://www.youtube.com/@toancanh24/videos"
+    # "https://www.youtube.com/@LegacyUnder/videos"
+    "https://www.youtube.com/@vtv24/videos"
     # "https://www.youtube.com/@BaoQuandoinhandan/videos",
     # "https://www.youtube.com/@vtcnow/videos",
     # "https://www.youtube.com/@HuynhDuyKhuongofficial/videos",
     # "https://www.youtube.com/@thuyetphapthichdaothinh/videos",
-
-    # Tai
-    # "https://www.youtube.com/@Ch3Thailand/videos",
-    # "https://www.youtube.com/@one31official/videos",
-    # "https://www.youtube.com/@CHANGE2561/videos",
-    # "https://www.youtube.com/@CH3Plus/videos",
-    # "https://www.youtube.com/@pigkaploy/videos",
-    # "https://www.youtube.com/@genierock/videos",
-    # "https://www.youtube.com/@zbingz",
-    # "https://www.youtube.com/@BieTheSka",
-    # "https://www.youtube.com/@KaykaiSalaiderChannel",
-    # "https://www.youtube.com/@VrzoTvThailand",
-    # "https://www.youtube.com/@mnjtv2020",
-    # "https://www.youtube.com/@yimyamtv", # redo
-    # "https://www.youtube.com/@primkung.official", # redo
-    # "https://www.youtube.com/@PEACHEATLAEK", # redo
-    # "https://www.youtube.com/@kamsingfamilychannel", # redo
-
-    # Id
-    "https://www.youtube.com/@MDEntertainment/videos",
-    "https://www.youtube.com/@RhomaIramaOfficial/videos",
-    "https://www.youtube.com/@corbuzier/videos",
-    "https://www.youtube.com/@ReyUtamiBenuaEntertainment/videos",
-    "https://www.youtube.com/@Ftvhits/videos",
-    "https://www.youtube.com/@CERITAUMSU/videos",
-    "https://www.youtube.com/@UMSUMedan/videos",
-    "https://www.youtube.com/@AkbarFaizalUncensored/videos",
-    "https://www.youtube.com/@CNBC_ID/videos"
 ]
 
 target_youtuber_channel_ids = []
 
 def scrape_pipeline(pid:int, channel_url:str, language="unknown"):
     try:
-        # set query
-        language = language
-        channel_id = ""
-        # channel_id = "UC6Q8f2fK10PLMo4kkiBSCXA" # Đậu Phộng TV
-        channel_id = get_youtuber_channel_id(channel_url)
-
-        logger.info(f"Scraper Pipeline > pid {pid} get {channel_id} success, start scraping")
         time_st = time.time()
 
         # 油管数据采集
-        total_videos_count, page_count = save_channel_all_videos(
-            channel_id=channel_id,
+        urls_list = get_ytb_blogger_url(
+            blogger_url=channel_url,
             language=language,
         )
+        print(urls_list)
+        # 将数据更新入库
+        for urls in urls_list:
+            if urls != None:
+                ytb_api.create_video(urls)
 
         # 日志记录
         time_ed = time.time()
@@ -104,7 +79,7 @@ def scrape_pipeline(pid:int, channel_url:str, language="unknown"):
         notice_text = f"[Youtube Scraper | ERROR] 数据采集失败. \
             \n\t进程ID: {pid} \
             \n\t频道URL: {channel_url} \
-            \n\t频道ID: {channel_id} \
+            \n\t频道ID: {''} \
             \n\t语言: {language} \
             \n\t共处理了{format_second_to_time_string(time.time() - time_st)} \
             \n\tIP: {local_ip} | {public_ip} \
@@ -122,8 +97,7 @@ def scrape_pipeline(pid:int, channel_url:str, language="unknown"):
         notice_text = f"[Youtube Scraper | DEBUG] 数据采集完毕. \
             \n\t进程ID: {pid} \
             \n\t频道URL: {channel_url} \
-            \n\t频道ID: {channel_id} | 语言: {language} \
-            \n\t总视频数: {total_videos_count} | 总页数: {page_count} \
+            \n\t频道ID: {''} | 语言: {language} \
             \n\t共处理了{format_second_to_time_string(spend_time)} \
             \n\tIP: {local_ip} | {public_ip} \
             \n\tTime: {now_str}"

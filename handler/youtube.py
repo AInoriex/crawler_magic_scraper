@@ -83,7 +83,7 @@ def save_channel_all_videos(channel_id:str, language:str, __retry:int=MAX_RETRY)
         while 1:
             page_count += 1
             if is_first:
-                playlist = Playlist(playlist_from_channel_id(channel_id), timeout=5)
+                playlist = Playlist(playlist_from_channel_id(channel_id), timeout=10)
                 is_first = False
             else:
                 playlist.getNextVideos()
@@ -92,6 +92,7 @@ def save_channel_all_videos(channel_id:str, language:str, __retry:int=MAX_RETRY)
             print(f'get_playlist_by_channelid > Playlist retrieved new {actual_len} videos')
             if cur_len_video > 0:
                 for pv in playlist.videos[total_videos_count:-1]:
+                    print(pv)
                     db_video = format_search_into_video(playlist=pv, language=language)
                     if db_video != None:
                         ytb_api.create_video(db_video)
