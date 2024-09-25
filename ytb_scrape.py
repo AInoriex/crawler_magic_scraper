@@ -1,5 +1,3 @@
-
-
 # 加载.env文件
 from dotenv import load_dotenv
 load_dotenv()
@@ -27,8 +25,9 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 ''' 连续处理任务限制数 '''
 
 # 目标列表
-target_language = ""
-target_youtuber_channel_urls = [
+target_language = "vi"
+target_youtuber_blogger_urls = [
+    "https://www.youtube.com/@toancanh24"
     # "https://www.youtube.com/@BaoQuandoinhandan/videos",
     # "https://www.youtube.com/@vtcnow/videos",
     # "https://www.youtube.com/@HuynhDuyKhuongofficial/videos",
@@ -67,7 +66,7 @@ def scrape_pipeline(pid:int, channel_url:str, language="unknown"):
         os._exit(0)
 
     except Exception as e:
-        continue_fail_count += 1
+        # continue_fail_count += 1
         logger.error(f"Scraper Pipeline > pid {pid} error processing")
         logger.error(e, stack_info=True)
 
@@ -85,9 +84,9 @@ def scrape_pipeline(pid:int, channel_url:str, language="unknown"):
             \n\t告警时间: {now_str}"
         alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
         # 失败过多直接退出
-        if continue_fail_count > LIMIT_FAIL_COUNT:
-            logger.error(f"Scraper Pipeline > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
-            exit()
+        # if continue_fail_count > LIMIT_FAIL_COUNT:
+        #     logger.error(f"Scraper Pipeline > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
+        #     exit()
     else:
         # alarm to Lark Bot
         public_ip = get_public_ip()
@@ -107,11 +106,12 @@ def main():
     if target_language == "":
         print("[ERROR] please input target language.")
         exit()
-    elif len(target_youtuber_channel_urls) <= 0:
+    elif len(target_youtuber_blogger_urls) <= 0:
         print("[ERROR] please input target channel urls.")
         exit()
-    for channel_url in target_youtuber_channel_urls:
+    for channel_url in target_youtuber_blogger_urls:
         scrape_pipeline(pid, channel_url, language=target_language)
+        print(channel_url)
 
 if __name__ == "__main__":
     main()
