@@ -75,7 +75,6 @@ def create_video(video: Video):
         url = "%s?sign=%d" % (getenv("DATABASE_CREATE_API"), get_time_stamp())
         req = video.dict()
         resp = post(url=url, json=req, timeout=5, verify=True)
-        resp = post(url=url, json=req, timeout=5, verify=True)
         assert resp.status_code == 200
         resp_json = resp.json()
         print("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
@@ -83,8 +82,8 @@ def create_video(video: Video):
         if resp_code == 0:
             # print(f"create_video > 创建数据成功 req:{req}, resp:{resp_json}")
             print(f"create_video > 创建数据成功 vid:{req.get('vid')}, link:{req.get('source_link')}")
-            with open("links.txt", "a") as f:
-                f.write(f"{req.get('source_link')}\n")
+            # with open("links.txt", "a") as f:
+            #     f.write(f"{req.get('source_link')}\n")
         elif resp_code == 25000:
             print(
                 f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")

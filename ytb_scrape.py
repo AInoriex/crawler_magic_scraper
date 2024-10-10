@@ -25,7 +25,7 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 ''' 连续处理任务限制数 '''
 
 # 目标列表
-target_language = "vi"
+target_language = "vi_text"
 target_youtuber_blogger_urls = [
     "https://www.youtube.com/@toancanh24"
     # "https://www.youtube.com/@BaoQuandoinhandan/videos",
@@ -51,15 +51,6 @@ target_youtuber_blogger_urls = [
     # "https://www.youtube.com/@kamsingfamilychannel", # redo
 
     # Id
-    "https://www.youtube.com/@MDEntertainment/videos",
-    "https://www.youtube.com/@RhomaIramaOfficial/videos",
-    "https://www.youtube.com/@corbuzier/videos",
-    "https://www.youtube.com/@ReyUtamiBenuaEntertainment/videos",
-    "https://www.youtube.com/@Ftvhits/videos",
-    "https://www.youtube.com/@CERITAUMSU/videos",
-    "https://www.youtube.com/@UMSUMedan/videos",
-    "https://www.youtube.com/@AkbarFaizalUncensored/videos",
-    "https://www.youtube.com/@CNBC_ID/videos"
 ]
 
 target_youtuber_channel_ids = []
