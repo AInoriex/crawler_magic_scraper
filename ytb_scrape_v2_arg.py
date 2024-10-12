@@ -3,11 +3,12 @@ load_dotenv()
 from os import getpid
 from sys import argv
 from time import sleep
-from ytb_scrape import scrape_pipeline
+from ytb_scrape_ytb_search import scrape_pipeline
 from ytb_scrape_yt_dlp import scrape_ytb_channel_data, import_data_to_db
 
 import time
 
+# youtube_search_python
 def main():
     if len(argv) <= 2:
         print("[ERROR] Too less arguments of urls to scrape.")
@@ -25,6 +26,7 @@ def main():
         print(f"You input {opt}. Bye!")
         exit()
 
+# yt-dlp
 def main_v2():
     if len(argv) <= 2:
         print("[ERROR] Too less arguments of urls to scrape.")

@@ -11,7 +11,7 @@ if getenv("DATABASE_GET_API") == '':
 if getenv("DATABASE_UPDATE_API") == '':
     # db_manager = DatabaseManager()
     raise ValueError("Get DATABASE_UPDATE_API failed")
-if getenv("I") == '':
+if getenv("DATABASE_CREATE_API") == '':
     # db_manager = DatabaseManager()
     raise ValueError("Get DATABASE_CREATE_API failed")
 

@@ -25,7 +25,7 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 ''' 连续处理任务限制数 '''
 
 # 目标列表
-target_language = "vi_text"
+target_language = "test"
 target_youtuber_blogger_urls = [
     "https://www.youtube.com/@toancanh24"
     # "https://www.youtube.com/@BaoQuandoinhandan/videos",

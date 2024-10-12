@@ -17,7 +17,6 @@ sk = os.getenv("OBS_SECRETKEY")
 # security_token = os.getenv("SecurityToken")
 
 # server填写Bucket对应的Endpoint, 这里以中国-香港为例，其他地区请按实际情况填写。
-# server = "https://obs.ap-southeast-1.myhuaweicloud.com" 
 server = os.getenv("OBS_HOST")
 bucket = os.getenv("OBS_BUCKET")
 
@@ -69,7 +68,6 @@ def upload_file(from_path:str, to_path:str)->str:
         print('Obs > 上传失败' + traceback.format_exc())
         raise e
     else:
-        # https://obs-prod-hw-bj-xp-ai-train.obs.cn-north-4.myhuaweicloud.com\QUWAN_DATA/Vietnam/3ZXxN4zzTz8.webm
         return urljoin(os.getenv("OBS_URLBASE"), to_path)
 
     finally:

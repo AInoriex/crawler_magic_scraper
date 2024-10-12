@@ -35,6 +35,9 @@
    
    # LARK
    NOTICE_WEBHOOK=https://open.feishu.cn/open-apis/bot/v2/hook/xxx-xxx
+
+   # Youtube
+   YTB_MAX_RETRY=3
    ```
 
 3. 运行程序
@@ -42,13 +45,13 @@
    - 批量处理：需要填写 `target_youtuber_channel_urls` 批量博主主页链接 和 `target_language` 目标语言
    
       ```
-      python ytb_scrape.py
+      python ytb_scrape_yt_dlp.py
       ```
    
    - 单个处理：需要填写 `target_youtuber_channel_urls` 批量博主主页链接 和 `target_language` 目标语言
    
      ```
-     python ytb_scrape_arg.py ms https://www.youtube.com/@AlyssaDezekTV/videos
+     python ytb_scrape_v2_arg.py ms https://www.youtube.com/@AlyssaDezekTV/videos
      ```
 
 
