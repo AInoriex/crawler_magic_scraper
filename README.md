@@ -1,9 +1,8 @@
-# 油管下载器
+# 油管视频URL采集器
 
 ## Description
 
 ​	本项目用于采集油管视频页url，目前只支持批量获取油管博主主页下所有视频。
-
 
 
 ## Usage
@@ -55,9 +54,9 @@
      ```
 
 
-
 ## 特别鸣谢
 
-​	[alexmercerind/youtube-search-python](https://github.com/alexmercerind/youtube-search-python)
-
+   [alexmercerind/youtube-search-python](https://github.com/alexmercerind/youtube-search-python)
+   
+   [yt-dlp/yt-dlp: A feature-rich command-line audio/video downloader](https://github.com/yt-dlp/yt-dlp)
 ​	
