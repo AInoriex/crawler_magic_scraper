@@ -26,20 +26,26 @@ def get_ytb_blogger_url(blogger_url:tuple, language:str)->list:
     @Paras blogger_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
     @Return [Video]
     '''
+    # 提取信息
     pattern = r'v=([^&]+)'
     vid = re.search(pattern, blogger_url).group().split('=')[1].split(' ')[0]
     duration = int(blogger_url.split(' ')[1].split('.')[0])
     blogger_url = blogger_url.split(' ')[0]
     # print(blogger_url)
-    info_dict = {
-    "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
-    }
+    # info_dict = {
+    # "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
+    # }
+    # 封装info
+    info_dict ={}
+    info_dict['cloud_save_path'] = ""
     info = dumps(info_dict)
+
     db_video = ytb_model.Video(
         id=int(0),
-        vid="ytb_bby_" + vid,
+        # vid="ytb_bby_" + vid,
+        vid="ytb_" + vid,
         position=int(3),
-        source_type=int(7),
+        source_type=int(3),
         cloud_type=int(0),
         cloud_path="",
         source_link=blogger_url,

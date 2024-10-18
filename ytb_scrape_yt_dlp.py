@@ -37,7 +37,7 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 
 # 俄语
 # TEXT = 'Eyu'
-target_language = "ar"
+target_language = "text"
 CHANNEL_URL_LIST = [
     # 已处理
     # "https://www.youtube.com/@RoomFactoryy",

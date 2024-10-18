@@ -3,62 +3,18 @@ load_dotenv()
 from os import getpid
 from sys import argv
 from time import sleep
-from utils import logger
 from ytb_scrape_ytb_search import scrape_pipeline
-from ytb_scrape_yeb_dlp_pip import import_data_to_db_pip
 from ytb_scrape_yt_dlp import scrape_ytb_channel_data, import_data_to_db
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
+from utils import logger
 
 import time
 import multiprocessing
 
-# youtube_search_python
-def main():
-    if len(argv) <= 2:
-        print("[ERROR] Too less arguments of urls to scrape.")
-        print("[INFO] Example: python ytb_scrape.py yue https://www.youtube.com/@video-df1md https://www.youtube.com/@MjrmGames")
-        exit()
-    pid = getpid()
-    language = argv[1]
-    opt = input(f"[DEBUG] Check your input, language:{language}, url:{argv[2:]}. Continue?(Y/N)")
-    if opt in ["Y", "y", "YES", "yes"]:
-        for url in argv[2:]:
-            print(f"[INFO] Now scrape url:{url}")
-            sleep(1)
-            scrape_pipeline(pid, channel_url=url, language=language)
-    else:
-        print(f"You input {opt}. Bye!")
-        exit()
-
+# 初始化
+logger = logger.init_logger("ytb_scrape")
 # yt-dlp
 def main_v2():
-    if len(argv) <= 2:
-        print("[ERROR] Too less arguments of urls to scrape.")
-        print("[INFO] Example: python ytb_scrape_arg.py yue https://www.youtube.com/@video-df1md")
-        exit()
-    pid = getpid()
-    language = argv[1]
-    opt = input(f"[DEBUG] Check your input, language:{language}, url:{argv[2:]}. Continue?(Y/N)")
-    if opt in ["Y", "y", "YES", "yes"]:
-        for url in argv[2:]:
-            print(f"[INFO] Now scrape url:{url}")
-            sleep(1)
-            for channel_url in argv[2:]:
-                count = 0
-                target_youtuber_blogger_urls = scrape_ytb_channel_data(pid=pid,channel_url=channel_url, language=language)
-                if len(target_youtuber_blogger_urls) <= 0:
-                    continue
-                for watch_url in target_youtuber_blogger_urls:
-                    import_data_to_db(pid, watch_url, language=language)
-                    print(f"{count} | {watch_url} 处理完毕")
-                    count += 1
-                    time.sleep(0.5)
-    else:
-        print(f"You input {opt}. Bye!")
-        exit()
-
-# yt-dlp
-def main_v3():
     if len(argv) <= 2:
         print("[ERROR] Too less arguments of urls to scrape.")
         print("[INFO] Example: python ytb_scrape_arg.py yue https://www.youtube.com/@video-df1md")
@@ -89,14 +45,15 @@ def main_v3():
                     chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for i, chunk in enumerate(chunks):
-                    pool.apply_async(import_data_to_db_pip, (pid, tuple(chunk), i, target_language))
+                    pool.apply_async(import_data_to_db, (pid, tuple(chunk), i, target_language))
                     # print(i,chunk)
-                # 关闭进程池    # 等待所有进程结束
+                # 关闭进程池
                 pool.close()
+                # 等待所有进程结束
                 pool.join()
     else:
         print(f"You input {opt}. Bye!")
         exit()
 
 if __name__ == "__main__":
-    main_v3()
+    main_v2()
