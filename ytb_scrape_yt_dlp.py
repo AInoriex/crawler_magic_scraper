@@ -4,7 +4,7 @@ load_dotenv()
 
 import os
 import time
-from database import ytb_api
+from database import ytb_api, ytb_api_v2
 from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_automatic
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file, yt_dlp_read_url_from_file_v2
 from utils import logger
@@ -37,62 +37,11 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 
 # 俄语
 # TEXT = 'Eyu'
-target_language = "text"
+target_language = ""
 CHANNEL_URL_LIST = [
     # 已处理
-    # "https://www.youtube.com/@RoomFactoryy",
-    # "https://www.youtube.com/@Litvin_Misha_11",
-    # "https://www.youtube.com/@arishnev",
-    # "https://www.youtube.com/@K-Media",
-    # "https://www.youtube.com/@EGORIK.SHKRED",
-    # "https://www.youtube.com/@standupclubru",
-    # "https://www.youtube.com/@xabibkaa",
-    # "https://www.youtube.com/@veloloh",
-    # "https://www.youtube.com/@redactsiya",
-    # "https://www.youtube.com/@YFrostA",
-    # "https://www.youtube.com/@Vladus",
-    # "https://www.youtube.com/@Masomka",
-    # "https://www.youtube.com/@kuplinovplay",
-
+    
     # 未处理
-#     "https://www.youtube.com/@getmovies",
-#     "https://www.youtube.com/@MashaBearRUSSIAN",
-#     "https://www.youtube.com/@LikeNastya_Vlog",
-#     "https://www.youtube.com/@HiBestMan",
-#     "https://www.youtube.com/@MrMarmok",
-#     "https://www.youtube.com/@TheBrianMaps",
-#     "https://www.youtube.com/@ADME_RU",
-#     "https://www.youtube.com/@TeremokTV",
-#     "https://www.youtube.com/@MasterskayaNastroeny",
-# ]
-
-# 阿拉伯语
-# TEXT = 'ar_Haider Khalid'
-# target_language = "ar"
-# INPUT = "https://www.youtube.com/@RABSHA22"
-# CHANNEL_URL_LIST = [
-    # 已处理
-    # "https://www.youtube.com/@RABSHA22",
-    # "https://www.youtube.com/@Rita99",
-    # "https://www.youtube.com/@aymanTV1",
-    # "https://www.youtube.com/@the_horror",
-    # "https://www.youtube.com/@LearnWithZakaria",
-    # "https://www.youtube.com/@alkottaab",
-    # "https://www.youtube.com/@ChefMadni",
-    # "https://www.youtube.com/@Espitalia",
-    # "https://www.youtube.com/@sa7iChannel",
-    # "https://www.youtube.com/@mmoshaya",
-    # "https://www.youtube.com/@MashaBearARAB",
-    # "https://www.youtube.com/@Ikram-du7fz",
-    # "https://www.youtube.com/@khalejiatv",
-    # "https://www.youtube.com/@saudchannel4",
-    # "https://www.youtube.com/shahidvod",
-    # "https://www.youtube.com/@BarryTube",
-    # "https://www.youtube.com/@MjrmGames",
-
-    # 未处理
-    "https://www.youtube.com/@MBC1",
-    "https://www.youtube.com/@monti1u",
 ]
 
 
@@ -107,46 +56,62 @@ def scrape_ytb_channel_data(pid:str, channel_url:str, language:str):
     file_path = yt_dlp_read_url_from_file_v2(url=channel_url, language=language)
 
     # 2. 读取txt内url
-    # 如果中间断了就更换成文件路径，不用再从新获取视频链接
+    # 如果中间断了就更换为scrape_ytb_channel_data2，不用再重新获取视频链接   
     with open(file_path, "r") as f:
         while True:
             link = f.readline()
             if not link:  # 如果没有更多行，跳出循环
                 break
-            # link = link.replace('\n','').strip()
+            count += 1  # 从1开始
             if count < START_INDEX:
                 print(f"Scraper Pipeline > [INFO] 当前{count}跳过, START_INDEX:{START_INDEX}")
                 continue
-            count += 1
             return_url_list.append(link.strip())
-            # 提供一个方法，将拿取的list做进一步处理(暂时处理不了)
-            # blogger_url_list.append(yt_dlp_hanfdle_file(line))
 
     # 目标列表
     logger.info(f"Scraper Pipeline > {channel_url}频道一共获取到{count}条url")
     return return_url_list
 
+def scrape_ytb_channel_data2():
+    '''根据具体的文件及其url索引来入库'''
+    count = 0
+    START_INDEX = 0  # 具体的中断点的视频索引
+    return_url_list = []
+
+    file_path = ''  # 文件路径
+    with open(file_path, "r") as f:
+        while True:
+            link = f.readline()
+            if not link:  # 如果没有更多行，跳出循环
+                break
+            count += 1
+            if count < START_INDEX:
+                print(f"Scraper Pipeline > [INFO] 当前{count}跳过, START_INDEX:{START_INDEX}")
+                continue
+            return_url_list.append(link.strip())
+
+    # 目标列表
+    return return_url_list
 
 def import_data_to_db(pid:int, channel_url:tuple, language="unknown"):
     # 数据导入数据库
     try:
         time_st = time.time()
-        
-        # # 油管数据采集
-        # urls_list = get_ytb_blogger_url(
-        #     blogger_url=channel_url,
-        #     language=language,
-        # )
+        # 油管数据采集
+        video_list = get_ytb_blogger_url(
+            blogger_url=channel_url,
+            language=language,
+        )
 
         # 油管采集字幕
-        video_object = ytb_dlp_automatic(
-            video_url=channel_url,
-            language=language
-        )
-        # print(urls_list)
+        # video_object = ytb_dlp_automatic(
+        #     video_url=channel_url,
+        #     language=language
+        # )
 
         # 将数据更新入库
-        ytb_api.create_video(video_object)
+        # ytb_api_v2.sign_database(video_list)  # 本地搭建数据库做测试
+        ytb_api.create_video(video_list)
         # print("测试成功",video_object)
 
         # 日志记录
@@ -216,7 +181,22 @@ def ytb_main():
             print(f"{count} | {watch_url} 处理完毕")
             count += 1
             time.sleep(0.5)
-            
+
+def ytb_main_to_txt():
+    '''若入库中断,则使用这个方法入库'''
+    count = 0
+    pid = os.getpid()
+    if target_language == "":
+        print("[ERROR] please input target language.")
+        exit()
+    target_youtuber_blogger_urls = scrape_ytb_channel_data2()
+    for watch_url in target_youtuber_blogger_urls:
+        import_data_to_db(pid, watch_url, language=target_language)
+        print(f"{count} | {watch_url} 处理完毕")
+        count += 1
+        time.sleep(0.5)            
 
 if __name__ == '__main__':
     ytb_main()
+    # ytb_main_to_txt()
+    
