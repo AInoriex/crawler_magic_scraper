@@ -13,6 +13,7 @@ import sys
 import os
 import time
 import multiprocessing 
+import uuid
 
 # 初始化
 logger = logger.init_logger("ytb_scrape")
@@ -75,6 +76,7 @@ def main_v3():
         print("[INFO] Example: python ytb_scrape_arg.py yue https://www.youtube.com/@video-df1md")
         exit()
     pid = getpid()  # 捕获进程
+    task_id = str(uuid.uuid4())  # 获取任务ID
     target_language = argv[1]
     opt = input(f"[DEBUG] Check your input, language:{target_language}, url:{argv[2:]}. Continue?(Y/N)")
     if opt in ["Y", "y", "YES", "yes"]:
@@ -90,25 +92,25 @@ def main_v3():
                 init_url = channel_url
                 # logger.info(f"时长:{duration / 3600}小时,{duration / 60}分钟，共获取{count}条链接")
                 if len(target_youtuber_blogger_urls) <= 0:
-                    logger.error("Scraper Pipeline > no watch urls to import.")
+                    logger.error("ytb_scrape_v2_arg > no watch urls to import.")
                     # exit()
                     continue
                 # 使用多进程处理video_url_list入库 # 创建进程池
-                pool = multiprocessing.Pool(4)
+                pool = multiprocessing.Pool(5)
                 # 将列表分成5个子集，分配给每个进程
                 # chunks = np.array_split(target_youtuber_blogger_urls, 5)
-                chunk_size = len(target_youtuber_blogger_urls) // 4
+                chunk_size = len(target_youtuber_blogger_urls) // 5
                 chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
                 # print(chunks)
                 # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
-                if len(chunks) < 4:
+                if len(chunks) < 5:
                     chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
                 time_ed = time.time()
                 spend_scrape_time =  time_ed - time_st
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 try:
                     for i, chunk in enumerate(chunks):
-                        pool.apply_async(import_data_to_db_pip, (pid, tuple(chunk), i, duration, count, init_url, spend_scrape_time, target_language))
+                        pool.apply_async(import_data_to_db_pip, (pid, tuple(chunk), i, duration, count, init_url, spend_scrape_time, task_id, target_language))
                         # print(i,chunk)
                     # 关闭进程池    # 等待所有进程结束
                     pool.close()

@@ -15,23 +15,27 @@ https://www.youtube.com/@vtv24/videos
 
 # CHANNEL_URL = "https://www.youtube.com/@failarmy/videos"
                         # blogger_url: str
-def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->list:
+def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库模型 
     @Paras blogger_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
     @Return [Video]
     '''
     # 提取信息
+    # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
+    # print(f"params > blogger_url:{blogger_url} language:{language} task_id:{task_id}")
     pattern = r'v=([^&]+)'
     vid = re.search(pattern, blogger_url).group().split('=')[1].split(' ')[0]
     duration = int(blogger_url.split(' ')[1].split('.')[0])
     blogger_url = blogger_url.split(' ')[0]
+    # print(f"object info > vid:{vid} duration:{duration} blogger_url:{blogger_url}")
+    # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
     # info_dict = {
     # "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
     # }
     # 封装info
     info_dict ={}
     info_dict['cloud_save_path'] = ""
-    info_dict['task_id'] = dumps(task_id)
+    info_dict['task_id'] = task_id
     info = dumps(info_dict)
 
     db_video = ytb_model.Video(
