@@ -68,7 +68,7 @@ def update_status(video: Video):
         print(f"update_status > 更新状态成功 req:{req}, resp:{resp_json}")
 
 
-def create_video(video: Video):
+def create_video(video: Video, retries:int = 3):
     ''' 创建ytb记录 '''
     try:
         # url = getenv("DATABASE_CREATE_API")
@@ -93,6 +93,11 @@ def create_video(video: Video):
             raise Exception(f"创建数据接口返回失败, req:{req}, resp:{resp.content}")
     except Exception as e:
         print("create_video > 未知错误: ", e)
+        if retries > 0:
+            print(f"create_video > 重新尝试入库, 剩余尝试次数: {retries}")
+            return create_video(video, retries - 1)  # 递归重试
+        else:
+            print("create_video > 达到最大重试次数，放弃入库。")
         return
 
 

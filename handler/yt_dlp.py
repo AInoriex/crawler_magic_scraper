@@ -1,16 +1,10 @@
 # 加载.env文件
 from dotenv import load_dotenv
 load_dotenv()
+from json import dumps
+from database import ytb_model
 
 import re
-import subprocess
-
-from os import getenv
-from yt_dlp import YoutubeDL
-from uuid import uuid4
-from json import dumps
-from database import ytb_model, ytb_api
-
 
 '''
 https://www.youtube.com/@daihanoi-htv/videos
@@ -21,25 +15,35 @@ https://www.youtube.com/@vtv24/videos
 
 # CHANNEL_URL = "https://www.youtube.com/@failarmy/videos"
                         # blogger_url: str
-def get_ytb_blogger_url(blogger_url:tuple, language:str)->list:
+def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库模型 
     @Paras blogger_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
     @Return [Video]
     '''
+    # 提取信息
+    # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
+    # print(f"params > blogger_url:{blogger_url} language:{language} task_id:{task_id}")
     pattern = r'v=([^&]+)'
     vid = re.search(pattern, blogger_url).group().split('=')[1].split(' ')[0]
     duration = int(blogger_url.split(' ')[1].split('.')[0])
     blogger_url = blogger_url.split(' ')[0]
-    # print(blogger_url)
-    info_dict = {
-    "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
-    }
+    # print(f"object info > vid:{vid} duration:{duration} blogger_url:{blogger_url}")
+    # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
+    # info_dict = {
+    # "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
+    # }
+    # 封装info
+    info_dict ={}
+    info_dict['cloud_save_path'] = ""
+    info_dict['task_id'] = task_id
     info = dumps(info_dict)
+
     db_video = ytb_model.Video(
         id=int(0),
-        vid="ytb_bby_" + vid,
+        # vid="ytb_bby_" + vid,
+        vid="ytb_" + vid,
         position=int(3),
-        source_type=int(7),
+        source_type=int(3),
         cloud_type=int(0),
         cloud_path="",
         source_link=blogger_url,
@@ -55,7 +59,7 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     # @save_path:保存链接的路径   
     # @file_path:读取txt文本链接的路径   
     '''
-    判断YouTube的url是否有字幕   
+    判断YouTube的url是否有字幕 [暂时没有开启该功能]  
     @video_url:视频链接      
     @language:语言  
     '''
