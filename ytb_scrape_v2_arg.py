@@ -8,6 +8,7 @@ from ytb_scrape_ytb_search import scrape_pipeline
 from ytb_scrape_yeb_dlp_pip import import_data_to_db_pip
 from ytb_scrape_yt_dlp import scrape_ytb_channel_data, import_data_to_db
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
+from database import ytb_api, ytb_api_v2, ytb_init_video
 
 import sys
 import os
@@ -84,46 +85,39 @@ def main_v3():
             print(f"[INFO] Now scrape url:{url}")
             sleep(1)
             for channel_url in argv[2:]:
-                time_st = time.time()
+                time_st = time.time()  # 获取采集数据的起始时间
                 target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
-                # 统计时长和数量
-                duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
-                count = len(target_youtuber_blogger_urls)
-                init_url = channel_url
-                # logger.info(f"时长:{duration / 3600}小时,{duration / 60}分钟，共获取{count}条链接")
+                # 统计总时长
+                total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
                 if len(target_youtuber_blogger_urls) <= 0:
                     logger.error("ytb_scrape_v2_arg > no watch urls to import.")
                     # exit()
                     continue
-                # 使用多进程处理video_url_list入库 # 创建进程池
-                pool = multiprocessing.Pool(5)
-                # 将列表分成5个子集，分配给每个进程
-                # chunks = np.array_split(target_youtuber_blogger_urls, 5)
-                chunk_size = len(target_youtuber_blogger_urls) // 5
-                chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
-                # print(chunks)
-                # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
-                if len(chunks) < 5:
-                    chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
-                time_ed = time.time()
-                spend_scrape_time =  time_ed - time_st
-                # 启动进程池中的进程，传递各自的子集和进程ID
                 try:
-                    for i, chunk in enumerate(chunks):
-                        pool.apply_async(import_data_to_db_pip, (pid, tuple(chunk), i, duration, count, init_url, spend_scrape_time, task_id, target_language))
-                        # print(i,chunk)
-                    # 关闭进程池    # 等待所有进程结束
+                    # 使用多进程处理video_url_list入库 # 创建进程池
+                    pool = multiprocessing.Pool(5)
+                    # 将列表分成5个子集，分配给每个进程
+                    # chunks = np.array_split(target_youtuber_blogger_urls, 5)
+                    chunk_size = len(target_youtuber_blogger_urls) // 5
+                    chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
+                    # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
+                    if len(chunks) < 5:
+                        chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
+                    time_ed = time.time()
+                    spend_scrape_time =  time_ed - time_st  # 采集总时间
+                    # 启动进程池中的进程，传递各自的子集和进程ID
+                    for pool_num, chunk in enumerate(chunks):
+                        # 将各项参数封装为Video对象
+                        video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
+                        pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
                     pool.close()
                     pool.join()
                 except KeyboardInterrupt:
                     # 捕获到 Ctrl+C 时，确保终止所有子进程
                     logger.warning("KeyboardInterrupt detected, terminating pool...")
                     pool.terminate()
-                    print("All processes have been terminated.")
-                    exit(1)  # 直接退出程序
-    else:
-        print(f"You input {opt}. Bye!")
-        exit()
+                    sys.exit()  # 退出主程序
+
 
 if __name__ == "__main__":
     main_v3()

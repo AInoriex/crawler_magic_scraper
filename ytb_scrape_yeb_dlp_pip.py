@@ -1,7 +1,7 @@
 # 加载.env文件
 from dotenv import load_dotenv
 load_dotenv()
-from database import ytb_api, ytb_api_v2
+from database import ytb_api, ytb_api_v2, ytb_init_video
 from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_automatic
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file, yt_dlp_read_url_from_file_v2, yt_dlp_read_url_from_file_v3
 from utils import logger
@@ -32,56 +32,39 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-target_language = "fr"
-# https://www.youtube.com/@FRANCE24/videos
-CHANNEL_URL_LIST = ["https://www.youtube.com/@franceinfo/videos","https://www.youtube.com/c/LittleAngelFran%C3%A7ais/videos",
-                    "https://www.youtube.com/@Kidibli_fr/videos", "https://www.youtube.com/@LeFatShow/videos", "https://www.youtube.com/@FuriousJumper/videos",
-                    "https://www.youtube.com/@SYMPA_FR/videos","https://www.youtube.com/@Valouzz_/videos","https://www.youtube.com/@DavidLafargePokemon/videos",
-                    "https://www.youtube.com/@joueurdugrenier/videos","https://www.youtube.com/@VodKprod/videos","https://www.youtube.com/@Amixem/videos"]
-# CHANNEL_URL_LIST = ["https://www.youtube.com/@Sciencebestiale"]
+target_language = "th"
 
-def import_data_to_db_pip(pid:int, watch_urls:tuple, pool_num:int, duration:int, count:int, channel_url:str, spend_scrape_time:float, task_id:str, language="unknown"):
+CHANNEL_URL_LIST = ["https://www.youtube.com/@TheDoShow0909"]
+
+def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_scrape_time:float, pid:int, task_id:str):
     """
     油管信息导入数据库
 
-    :param pid: 进程ID
-    :param watch_urls: 视频信息 tuple(tuple, tuple, ...)
+    :param video_urls: 视频信息 Video(tuple, tuple, ...)
     :param pool_num: 线程编号
-    :param duration: 采集时长
-    :param count: 共采集的视频数量
-    :param init_url: 任务的开始URL
     :param spend_scrape_time: 采集总时间
+    :param pid: 进程ID
     :param task_id: 任务ID
-    :param language: 语言
     """
-    # 初始化信息
-    # duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
-    # count = len(target_youtuber_blogger_urls)
-    # init_url = channel_url
-
     # 频道通知开始
     now_str = get_now_time_string()
     notice_text = f"[Youtube Scraper | DEBUG] 第{pool_num}个线程开始采集. \
-        \n\t频道URL: {channel_url} \
-        \n\t语言: {language} \
-        \n\t入库视频数量: {count} \
-        \n\t入库时长(小时):{round((duration / 3600),3)} \
+        \n\t频道URL: {video_urls.blogger_url} \
+        \n\t语言: {video_urls.language} \
+        \n\t入库视频数量: {video_urls.count} \
+        \n\t入库时长(小时):{round((video_urls.duration / 3600),3)} \
         \n\t任务ID: {task_id} \
         \n\t任务处理时间: {format_second_to_time_string(spend_scrape_time)} \
         \n\t通知时间: {now_str}"
     alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
     # 数据导入数据库
-    for index, video_url in enumerate(watch_urls):
+    for index, video_url in enumerate(video_urls.video_url):
         try:
             logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_url}")
             time_st = time.time()
-            # 格式化视频信息
-            # if video_url is None:
-            #     logger.error("Scraper Pipeline > no video urls to import.")
-            #     break
             video_object = get_ytb_blogger_url(
                 blogger_url=video_url,
-                language=language,
+                language=video_urls.language,
                 task_id=task_id
             )
             # print(f'{video_url} 我是第{pool}个进程, 处理第{count}个URL')
@@ -98,7 +81,7 @@ def import_data_to_db_pip(pid:int, watch_urls:tuple, pool_num:int, duration:int,
             now_str = get_now_time_string()
             notice_text = f"[Youtube Scraper | DEBUG] 数据已采集入库. \
                 \n\t进程ID: {pid} \
-                \n\t频道信息: {language} | {channel_url} \
+                \n\t频道信息: {video_urls.language} | {video_urls.blogger_url} \
                 \n\t线程信息: {f'第{pool_num}个进程, 处理第{index}个数据: {video_url}'} \
                 \n\t共处理了{format_second_to_time_string(spend_time)} \
                 \n\t任务ID: {task_id} \
@@ -114,13 +97,13 @@ def import_data_to_db_pip(pid:int, watch_urls:tuple, pool_num:int, duration:int,
             now_str = get_now_time_string()
             notice_text = f"[Youtube Scraper | ERROR] 数据采集入库失败 \
                 \n\t进程ID: {pid} \
-                \n\t频道信息: {language} | {channel_url} \
+                \n\t频道信息: {video_urls.language} | {video_urls.blogger_url} \
                 \n\t线程信息: {f'我是第{pool_num}个进程, 处理第{index}个数据: {video_url}'} \
                 \n\t任务ID: {task_id} \
                 \n\tError: {e} \
                 \n\tIP: {local_ip} | {public_ip} \
                 \n\tTime: {now_str}"
-            alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK_V2"), text=notice_text)
+            alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
             # 失败过多直接退出
             # if continue_fail_count > LIMIT_FAIL_COUNT:
             #     logger.error(f"Scraper Pipeline > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
@@ -137,39 +120,41 @@ def import_data_to_db_pip(pid:int, watch_urls:tuple, pool_num:int, duration:int,
             pass
 
 def ytb_main():
-    pid = os.getpid()
-    task_id = str(uuid.uuid4())
+    pid = os.getpid()  # 捕获进程
+    task_id = str(uuid.uuid4())  # 获取任务ID
     if target_language == "":
         print("[ERROR] please input target language.")
         exit()
     for channel_url in CHANNEL_URL_LIST:
         logger.info(f"Scraper Pipeline > {pid} 当前处理频道: {channel_url} | 语言：{target_language}")
+        time_st = time.time()  # 获取采集数据的起始时间
         target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
+        # 统计总时长
+        total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
+        print(total_duration) 
         if len(target_youtuber_blogger_urls) <= 0:
             logger.error("Scraper Pipeline > no watch urls to import.")
             # exit()
             continue
-        total_duration = 0
-        # total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
-        total_count = len(target_youtuber_blogger_urls)
-        init_url = channel_url
         try:
             # 使用多进程处理video_url_list入库 # 创建进程池
-            # pool = multiprocessing.Pool(4)
-            with multiprocessing.Pool(4) as pool:
-                # 将列表分成4个子集，分配给每个进程
+            with multiprocessing.Pool(5) as pool:
+                # 将列表分成5个子集，分配给每个进程
                 # chunks = np.array_split(target_youtuber_blogger_urls, 4)
                 chunk_size = len(target_youtuber_blogger_urls) // 4
                 chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
                 # print(chunks)
-                # 如果列表的长度不是4的倍数，可能会有剩余的元素，我们将它们分配到最后一个子集中
-                if len(chunks) < 4:
+                # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
+                if len(chunks) < 5:
                     chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
+                time_ed = time.time()
+                spend_scrape_time =  time_ed - time_st  # 采集总时间
                 # 启动进程池中的进程，传递各自的子集和进程ID
-                for i, chunk in enumerate(chunks):
-                    print(i,chunk)
-                    pool.apply_async(import_data_to_db_pip, (pid, tuple(chunk), i, total_duration, total_count, init_url, 0.0, task_id, target_language))
-                    time.sleep(30)
+                for pool_num, chunk in enumerate(chunks):
+                    # 将各项参数封装为Video对象
+                    video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
+                    pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
+                    time.sleep(0.5)
                 pool.close()
                 pool.join()  # 等待所有进程结束
         except KeyboardInterrupt:
