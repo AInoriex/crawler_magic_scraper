@@ -87,13 +87,12 @@ def main_v3():
         exit(1)
 
     for channel_url in argv[2:]:
+        time_st = time.time()  # 获取采集数据的起始时间
         try:
             # 解析数据
-            time_1 = time()
             logger.info(f"main_v3 > 当前正在解析频道: {channel_url} | 语言：{target_language}")
             target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
-            time_2 = time()
-            spend_scrape_time =  time_2 - time_1
+            
             logger.info(f"main_v3 > 解析{channel_url}完毕, 花费{format_second_to_time_string(spend_scrape_time)}")
             if len(target_youtuber_blogger_urls) <= 0:
                 logger.error("main_v3 > 无资源导入")
@@ -108,42 +107,43 @@ def main_v3():
             logger.error(e, stack_info=True)
 
             # alarm to Lark Bot
-            now_str = get_now_time_string()
             notice_text = f"[Ytb Scraper | ERROR] 数据采集失败 \
                 \n\t频道信息: {target_language} | {channel_url} \
                 \n\t任务ID: {task_id} \
                 \n\tError: {e} \
-                \n\t通知时间: {now_str}"
+                \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
 
         else:
             init_url = channel_url
-            # 统计时长和数量
-            total_duration = 0
-            # total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
+            # 统计总时长
+            total_duration = sum(
+                [int(duration_url.split(' ')[1].strip().split('.')[0]) 
+                for duration_url in target_youtuber_blogger_urls 
+                if 'NA' not in duration_url]) 
             total_count = len(target_youtuber_blogger_urls)
             logger.info(f"main_v3 > 频道:{channel_url}, 总资源数:{total_count}, 总时长:{total_duration}")
 
         try:
-            time_3 = time()
             # 使用多进程处理入库
-            # 创建进程池
-            with Pool(4) as pool:
-                # 将列表分成4个子集，分配给每个进程
-                chunk_size = len(target_youtuber_blogger_urls) // 4
+            with Pool(5) as pool:
+                # 将列表分成5个子集，分配给每个进程
+                # chunks = np.array_split(target_youtuber_blogger_urls, 5)
+                chunk_size = len(target_youtuber_blogger_urls) // 5
                 chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
-                # print(chunks)
-                # 如果列表的长度不是4的倍数，可能会有剩余的元素，我们将它们分配到最后一个子集中
-                if len(chunks) < 4:
+                # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
+                if len(chunks) < 5:
                     chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
-                for i, chunk in enumerate(chunks):
-                    # print(i,chunk)
-                    pool.apply_async(import_data_to_db_pip, (pid, tuple(chunk), i, total_duration, total_count, init_url, 0.0, task_id, target_language))
+                time_ed = time.time()
+                spend_scrape_time =  time_ed - time_st  # 采集总时间
+                # 启动进程池中的进程，传递各自的子集和进程ID
+                for pool_num, chunk in enumerate(chunks):
+                    # 将各项参数封装为Video对象
+                    video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
+                    pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
                     sleep(10)
                 pool.close()
                 pool.join()  # 等待所有进程结束
-            time_4 = time()
-            spend_import_time =  time_4 - time_3
         except KeyboardInterrupt:
             # 捕获到 Ctrl+C 时，确保终止所有子进程
             logger.warning("KeyboardInterrupt detected, terminating pool...")
@@ -156,24 +156,21 @@ def main_v3():
             logger.error(e, stack_info=True)
 
             # alarm to Lark Bot
-            now_str = get_now_time_string()
             notice_text = f"[Ytb Scraper | ERROR] 数据入库失败 \
                 \n\t频道信息: {target_language} | {channel_url} \
                 \n\t任务ID: {task_id} \
                 \n\tError: {e} \
-                \n\t通知时间: {now_str}"
+                \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
         else:
             # alarm to Lark Bot
-            now_str = get_now_time_string()
             notice_text = f"[Ytb Scraper | SUCCESS] 频道数据采集入库成功 \
                 \n\t频道信息: {target_language} | {channel_url} \
                 \n\t任务ID: {task_id} \
                 \n\t数据总数量: {total_count} \
                 \n\t数据总时长: {total_duration} \
-                \n\t采集时间: {format_second_to_time_string(spend_scrape_time)} \
-                \n\t入库时间: {format_second_to_time_string(spend_import_time)} \
-                \n\t通知时间: {now_str}"
+                \n\t采集时间: {format_second_to_time_string(time.time() - time_st)} \
+                \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
 
 if __name__ == "__main__":
