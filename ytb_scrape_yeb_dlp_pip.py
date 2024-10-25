@@ -2,7 +2,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 from database import ytb_api, ytb_api_v2, ytb_init_video
-from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_automatic
+from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_automatic, ytb_dlp_format_video
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file, yt_dlp_read_url_from_file_v2, yt_dlp_read_url_from_file_v3
 from utils import logger
 from utils.ip import get_local_ip, get_public_ip
@@ -32,9 +32,10 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-target_language = "th"
+target_language = "es"
 
-CHANNEL_URL_LIST = ["https://www.youtube.com/@TheDoShow0909"]
+CHANNEL_URL_LIST = ["https://www.youtube.com/@ramilladeaventura/videos",
+                    "https://www.youtube.com/@LaVanguardia/videos"]
 
 def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_scrape_time:float, pid:int, task_id:str):
     """
@@ -47,16 +48,16 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
     :param task_id: 任务ID
     """
     # 频道通知开始
-    now_str = get_now_time_string()
-    notice_text = f"[Youtube Scraper | DEBUG] 第{pool_num}个线程开始采集. \
-        \n\t频道URL: {video_urls.blogger_url} \
-        \n\t语言: {video_urls.language} \
-        \n\t入库视频数量: {video_urls.count} \
-        \n\t入库时长(小时):{round((video_urls.duration / 3600),3)} \
-        \n\t任务ID: {task_id} \
-        \n\t任务处理时间: {format_second_to_time_string(spend_scrape_time)} \
-        \n\t通知时间: {now_str}"
-    alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
+    # now_str = get_now_time_string()
+    # notice_text = f"[Youtube Scraper | DEBUG] 第{pool_num}个线程开始采集. \
+    #     \n\t频道URL: {video_urls.blogger_url} \
+    #     \n\t语言: {video_urls.language} \
+    #     \n\t入库视频数量: {video_urls.count} \
+    #     \n\t入库时长(小时):{round((video_urls.duration / 3600),3)} \
+    #     \n\t任务ID: {task_id} \
+    #     \n\t任务处理时间: {format_second_to_time_string(spend_scrape_time)} \
+    #     \n\t通知时间: {now_str}"
+    # alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
     # 数据导入数据库
     for index, video_url in enumerate(video_urls.video_url):
         try:
@@ -130,9 +131,11 @@ def ytb_main():
         time_st = time.time()  # 获取采集数据的起始时间
         target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
         # 统计总时长
-        total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
-        print(total_duration) 
-        if len(target_youtuber_blogger_urls) <= 0:
+        total_duration = sum(
+            [int(duration_url.split(' ')[1].strip().split('.')[0]) 
+             for duration_url in target_youtuber_blogger_urls 
+             if 'NA' not in duration_url]) 
+        if len(target_youtuber_blogger_urls) <= 0:  # 判断是否获取到视频数据，若没有跳出当次循环
             logger.error("Scraper Pipeline > no watch urls to import.")
             # exit()
             continue
@@ -152,11 +155,22 @@ def ytb_main():
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for pool_num, chunk in enumerate(chunks):
                     # 将各项参数封装为Video对象
-                    video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
+                    video_chunk = ytb_dlp_format_video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
                     pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
                     time.sleep(0.5)
                 pool.close()
                 pool.join()  # 等待所有进程结束
+                # 结束时频道通知飞书
+                now_str = get_now_time_string()
+                notice_text = f"[Youtube Scraper | DEBUG] 采集{channel_url}结束. \
+                    \n\t频道URL: {channel_url} \
+                    \n\t语言: {target_language} \
+                    \n\t入库视频数量: {video_chunk.count} \
+                    \n\t入库时长(小时):{round((video_chunk.duration / 3600),3)} \
+                    \n\t任务ID: {task_id} \
+                    \n\t任务处理时间: {format_second_to_time_string(spend_scrape_time)} \
+                    \n\t通知时间: {now_str}"
+                alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
         except KeyboardInterrupt:
             # 捕获到 Ctrl+C 时，确保终止所有子进程
             logger.warning("KeyboardInterrupt detected, terminating pool...")

@@ -25,7 +25,7 @@ class Video:
         self.count = count
     def __str__(self) -> str:
         return (
-            f"Video(blogger_url={self.blogger_url}webpage_url={self.video_url}, duration={self.duration}, language={self.language})"
+            f"Video(blogger_url={self.blogger_url}, webpage_url={self.video_url}, duration={self.duration}, language={self.language}, count = {self.count})"
         )
     def dict(self) -> dict:
         return {

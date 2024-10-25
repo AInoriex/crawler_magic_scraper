@@ -39,6 +39,7 @@ class Video:
         vid: 视频ID
         position: 1: cas, 2: cuhk, 3: quwan
         source_type: 1: Bilibili, 2: 喜马拉雅, 3: YouTube
+        blogger_url: 博主链接
         source_link: 完整视频链接
         duration: 原始长度
         language: 视频主要语言

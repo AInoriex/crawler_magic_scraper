@@ -2,7 +2,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 from json import dumps
-from database import ytb_model
+from database import ytb_model, ytb_init_video
 
 import re
 
@@ -98,3 +98,21 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     )
     # print(db_video)
     return db_video
+
+def ytb_dlp_format_video(blogger_url:str, video_url:str, total_duration:int, language:str, total_count:str) -> ytb_init_video.Video:
+    ''' 格式化视频信息为数据库模型 
+    @Paras blogger_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
+    @Paras video_url: 完整视频链接
+    @Paras language: 语言
+    @Paras total_duration: 总视频时长
+    @Paras total_count: 总视频数量
+    @Return 
+    '''
+    pip_video = ytb_init_video.Video(
+        blogger_url=blogger_url,
+        video_url=video_url,
+        duration=total_duration,
+        language=language,
+        count=total_count
+    )
+    return pip_video

@@ -8,6 +8,8 @@ from ytb_scrape_ytb_search import scrape_pipeline
 from ytb_scrape_yeb_dlp_pip import import_data_to_db_pip
 from ytb_scrape_yt_dlp import scrape_ytb_channel_data, import_data_to_db
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
+from utils.utime import get_now_time_string, format_second_to_time_string
+from utils.lark import alarm_lark_text
 from database import ytb_api, ytb_api_v2, ytb_init_video
 
 import sys
@@ -88,7 +90,10 @@ def main_v3():
                 time_st = time.time()  # 获取采集数据的起始时间
                 target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
                 # 统计总时长
-                total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
+                total_duration = sum(
+                    [int(duration_url.split(' ')[1].strip().split('.')[0]) 
+                    for duration_url in target_youtuber_blogger_urls 
+                    if 'NA' not in duration_url]) 
                 if len(target_youtuber_blogger_urls) <= 0:
                     logger.error("ytb_scrape_v2_arg > no watch urls to import.")
                     # exit()
@@ -112,6 +117,17 @@ def main_v3():
                         pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
                     pool.close()
                     pool.join()
+                    # 结束时频道通知飞书
+                    now_str = get_now_time_string()
+                    notice_text = f"[Youtube Scraper | DEBUG] 第{pool_num}个线程开始采集. \
+                        \n\t频道URL: {channel_url} \
+                        \n\t语言: {target_language} \
+                        \n\t入库视频数量: {video_chunk.count} \
+                        \n\t入库时长(小时):{round((video_chunk.duration / 3600),3)} \
+                        \n\t任务ID: {task_id} \
+                        \n\t任务处理时间: {format_second_to_time_string(spend_scrape_time)} \
+                        \n\t通知时间: {now_str}"
+                    alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
                 except KeyboardInterrupt:
                     # 捕获到 Ctrl+C 时，确保终止所有子进程
                     logger.warning("KeyboardInterrupt detected, terminating pool...")
