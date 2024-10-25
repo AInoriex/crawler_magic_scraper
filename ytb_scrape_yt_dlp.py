@@ -4,7 +4,7 @@ load_dotenv()
 
 import os
 import time
-from database import ytb_api, ytb_api_v2
+from database import ytb_api
 from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_automatic
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file, yt_dlp_read_url_from_file_v2
 from utils import logger
