@@ -48,30 +48,46 @@ def yt_dlp_read_url_from_file_v2(url:str, language:str="") -> str:
 
 def yt_dlp_read_url_from_file_v3(url:str, language:str="") -> list:
     """
-    使用yt-dlp从url中读取视频信息
+    使用 yt-dlp 从指定的 YouTube 频道页面 URL 中提取视频信息。
 
-    :param: url (str): YouTube频道页面URL 
-            exp. https://www.youtube.com/@Nhyxinhne/videos
-    :param: language (str, optional): 语言代码. Defaults to "".
-    :param: return: list对象
+    :param url: YouTube 频道页面的 URL - 例如:https://www.youtube.com/@Nhyxinhne/videos
+    :param language (str, optional) - 语言代码. Defaults to "".
+    :return: List[Tuple[str, str]] - 返回包含视频网页链接和时长的列表.格式为 (webpage_url, duration)
     """
-    # 目前下载的主要是 webpage_url 和 duration 俩个字段信息
+    # 目前下载的主要是 webpage_url 和 duration 俩个字段信息，使用 yt-dlp 命令获取视频网页链接和时长
     # command = ['yt-dlp', '--flat-playlist', '--print', '%(webpage_url)s %(duration)s', INPUT_URL]
     command = f'yt-dlp --flat-playlist --print \"%(webpage_url)s %(duration)s\" {url}'
+
     # 使用 Popen 捕获 yt-dlp 输出
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
-    # 检查是否有错误
+
+    # 错误检查
     if stderr:
-        print(f"Error: {stderr.decode('utf-8')}")
-    # 将标准输出解码成字符串
-    output_lines_list = stdout.decode('utf-8').strip().split('\n')
-    print('获取到', len(output_lines_list), '条数据')
-    return output_lines_list
+        error_message = stderr.decode('utf-8').strip()
+        print(f"Error: {error_message}")
+        return []  # 如果发生错误，返回空列表
+    
+   # 解析标准输出数据
+    output_list = []
+    output_lines = stdout.decode('utf-8').strip().split('\n')
+    
+    for line in output_lines:
+        # 检查每行数据并解析网页链接和视频时长
+        parts = line.split(' ')
+        if len(parts) >= 2:
+            video_url = parts[0]
+            duration = parts[1]
+            output_list.append((video_url, duration))
+        else:
+            print(f"Warning: 无法解析数据行: '{line}'")
+    
+    print(f"共获取到 {len(output_list)} 条视频数据")
+    return output_list
 
 if __name__ == "__main__":
-    # yt_dlp_read_url_from_file_v2(
-    #     url="https://www.youtube.com/@RABSHA22",
-    #     language=""
-    # )
+    yt_dlp_read_url_from_file_v3(
+        url="https://www.youtube.com/@user-qx9so9pk1m/videos",
+        language="yue"
+    )
     pass
