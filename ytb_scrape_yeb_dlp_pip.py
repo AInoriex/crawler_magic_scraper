@@ -10,6 +10,9 @@ from time import sleep, time
 from database import ytb_api, ytb_init_video
 from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_format_video
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
+from database import ytb_api, ytb_api_v2, ytb_init_video
+from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file, yt_dlp_read_url_from_file_v2, yt_dlp_read_url_from_file_v3
+from handler.yt_dlp import ytb_dlp_format_video, get_ytb_blogger_url
 from utils import logger
 from utils.ip import get_local_ip, get_public_ip
 from utils.lark import alarm_lark_text
@@ -27,12 +30,11 @@ LIMIT_LAST_COUNT = int(getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-target_language = "es"
+target_language = "yue"
 
-CHANNEL_URL_LIST = ["https://www.youtube.com/@ramilladeaventura/videos",
-                    "https://www.youtube.com/@LaVanguardia/videos"]
+CHANNEL_URL_LIST = ["https://www.youtube.com/@user-qx9so9pk1m/videos"]
 
-def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_scrape_time:float, pid:int, task_id:str):
+def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, pid:int, task_id:str):
     """
     油管信息导入数据库
 
@@ -45,7 +47,9 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
     logger = logger.init_logger("import_data_to_db_pip")
 
     # 数据导入数据库
-    for index, video_url in enumerate(video_urls.video_url):
+    index = 0
+    for video_url, duration in zip(video_urls.video_url, video_urls.duration):
+        index += 1
         try:
             logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_url}")
             time_st = time()
@@ -54,8 +58,9 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
             #     logger.error("import_data_to_db_pip > video_url invalid")
             #     break
             video_object = get_ytb_blogger_url(
-                blogger_url=video_url,
+                video_url=video_url,
                 language=video_urls.language,
+                duration=float(duration),
                 task_id=task_id
             )
 
@@ -87,9 +92,9 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
             # alarm to Lark Bot
             notice_text = f"[Youtube Scraper | ERROR] 数据入库失败 \
                 \n\t进程ID: {pid} \
-                \n\t频道信息: {video_urls.language} | {video_urls.blogger_url} \
-                \n\t线程信息: {f'我是第{pool_num}个进程, 处理第{index}个数据: {video_url}'} \
                 \n\t任务ID: {task_id} \
+                \n\t频道信息: {video_urls.language} | {video_urls.channel_url} \
+                \n\t线程信息: {f'我是第{pool_num}个进程, 处理第{index}个数据: {video_url}'} \
                 \n\tError: {e} \
                 \n\tIP: {local_ip} | {public_ip} \
                 \n\tTime: {get_now_time_string()}"
@@ -99,7 +104,6 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
             #     logger.error(f"import_data_to_db_pip > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
             #     exit(1)
             continue
-
         except KeyboardInterrupt:
             logger.warning(f"import_data_to_db_pip > pid {pid} interrupted processing, exit.")
             # pool_num.terminate()  # 直接终止所有子进程
@@ -118,40 +122,42 @@ def ytb_main():
         exit()
     for channel_url in CHANNEL_URL_LIST:
         logger.info(f"ytb_main > 当前处理频道: {channel_url} | 语言：{target_language}")
+        if not channel_url:  # 判断channel_url是否获取到链接
+            logger.info("没有获取到链接")
         time_st = time.time()  # 获取采集数据的起始时间
-        target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
-        if len(target_youtuber_blogger_urls) <= 0:  # 判断是否获取到视频数据，若没有跳出当次循环
+        target_youtuber_channel_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
+        if len(target_youtuber_channel_urls) <= 0:  # 判断是否获取到视频数据，若没有跳出当次循环
             logger.error("ytb_main > no watch urls to import.")
             # exit()
             continue
-
-        # 统计
+        # 统计总时长
         total_duration = sum(
             [int(duration_url.split(' ')[1].strip().split('.')[0]) 
-             for duration_url in target_youtuber_blogger_urls 
+             for duration_url in target_youtuber_channel_urls 
              if 'NA' not in duration_url]) 
-        total_count = len(target_youtuber_blogger_urls)
-        logger.info(f"ytb_main > 频道:{channel_url}, 总资源数:{total_count}, 总时长:{total_duration}")
-
-        # 使用多进程处理video_url_list入库
+        if len(target_youtuber_channel_urls) <= 0:  # 判断是否获取到视频数据，若没有跳出当次循环
+            logger.error("Scraper Pipeline > no watch urls to import.")
+            # exit()
+            continue
         try:
-            # 创建进程池
-            with multiprocessing.Pool(4) as pool:
-                # 将列表分成4个子集，分配给每个进程
-                chunk_size = len(target_youtuber_blogger_urls) // 4
-                chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
-                # print("debug chunks: {chunks}")
+            # 使用多进程处理video_url_list入库 # 创建进程池
+            with multiprocessing.Pool(5) as pool:
+                # 将列表分成5个子集，分配给每个进程
+                # chunks = np.array_split(target_youtuber_blogger_urls, 4)
+                chunk_size = len(target_youtuber_channel_urls) // 4
+                chunks = [target_youtuber_channel_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_channel_urls), chunk_size)]
+                # print(chunks)
                 # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
-                if len(chunks) < 4:
-                    chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
+                if len(chunks) < 5:
+                    chunks.append(target_youtuber_channel_urls[len(chunks)*chunk_size:])
                 time_ed = time.time()
                 spend_scrape_time =  time_ed - time_st  # 采集总时间
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for pool_num, chunk in enumerate(chunks):
                     # 将各项参数封装为Video对象
-                    video_chunk = ytb_dlp_format_video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
+                    video_chunk = ytb_dlp_format_video(channel_url, chunk, total_duration, target_language, len(target_youtuber_channel_urls))
                     pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
-                    time.sleep(1)
+                    time.sleep(0.5)
                 pool.close()
                 pool.join()  # 等待所有进程结束
                 logger.info(f"ytb_main > 频道:{channel_url}入库处理完毕")

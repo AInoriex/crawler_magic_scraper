@@ -2,7 +2,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 from json import dumps
-from database import ytb_model, ytb_init_video
+from database import ytb_model, ytb_init_video 
 
 import re
 
@@ -15,18 +15,16 @@ https://www.youtube.com/@vtv24/videos
 
 # blogger_url = "https://www.youtube.com/@failarmy/videos"
                         # blogger_url: str
-def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->ytb_model.Video:
+def get_ytb_blogger_url(video_url:str, duration:float, language:str, task_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库模型 
-    @Paras blogger_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
+    @Paras video_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
     @Return [Video]
     '''
     # 提取信息
     # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
     # print(f"params > blogger_url:{blogger_url} language:{language} task_id:{task_id}")
     pattern = r'v=([^&]+)'
-    vid = re.search(pattern, blogger_url).group().split('=')[1].split(' ')[0]
-    duration = int(blogger_url.split(' ')[1].split('.')[0])
-    blogger_url = blogger_url.split(' ')[0]
+    vid = re.search(pattern, video_url).group().split('=')[1].split(' ')[0]
     # print(f"object info > vid:{vid} duration:{duration} blogger_url:{blogger_url}")
     # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
     # info_dict = {
@@ -45,7 +43,7 @@ def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->ytb_model
         source_type=int(3),
         cloud_type=int(0),
         cloud_path="",
-        source_link=blogger_url,
+        source_link=video_url,
         language=language,
         duration=duration,
         info=info
@@ -98,20 +96,26 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     # print(db_video)
     return db_video
 
-def ytb_dlp_format_video(blogger_url:str, video_url:str, total_duration:int, language:str, total_count:str) -> ytb_init_video.Video:
-    ''' 格式化视频信息为数据库模型 
-    @Paras blogger_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
-    @Paras video_url: 完整视频链接
-    @Paras language: 语言
-    @Paras total_duration: 总视频时长
-    @Paras total_count: 总视频数量
-    @Return 
-    '''
+def ytb_dlp_format_video(channel_url:str, video_urls:list, language:str) -> ytb_init_video.Video:
+    """
+    格式化视频信息为Video类型
+
+    :param channel_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
+    :param video_url: 完整视频链接
+    :param language: 语言   
+    """
+    # 提取信息
+    video_url = []  # 存储视频url列表
+    video_duration = []  # 存储视频时长列表
+    for video_info in video_urls:
+        video_url.append(video_info[0])
+        video_duration.append(video_info[1])
+
+    # print(video_url,"#########",video_duration)
     pip_video = ytb_init_video.Video(
-        blogger_url=blogger_url,
+        channel_url=channel_url,
         video_url=video_url,
-        duration=total_duration,
+        duration=video_duration,
         language=language,
-        count=total_count
     )
     return pip_video

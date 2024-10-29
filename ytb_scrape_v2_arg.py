@@ -9,6 +9,7 @@ from utils import logger as ulog
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
 from utils.lark import alarm_lark_text
 from utils.utime import get_now_time_string, format_second_to_time_string
+from database import ytb_init_video
 
 # youtube_search_python
 def main():
@@ -52,10 +53,10 @@ def main_v2():
             sleep(1)
             for channel_url in argv[2:]:
                 count = 0
-                target_youtuber_blogger_urls = scrape_ytb_channel_data(pid=pid,channel_url=channel_url, language=language)
-                if len(target_youtuber_blogger_urls) <= 0:
+                target_youtuber_channel_urls = scrape_ytb_channel_data(pid=pid,channel_url=channel_url, language=language)
+                if len(target_youtuber_channel_urls) <= 0:
                     continue
-                for watch_url in target_youtuber_blogger_urls:
+                for watch_url in target_youtuber_channel_urls:
                     import_data_to_db(pid, watch_url, language=language)
                     print(f"{count} | {watch_url} 处理完毕")
                     count += 1
@@ -91,13 +92,13 @@ def main_v3():
         try:
             # 解析数据
             logger.info(f"main_v3 > 当前正在解析频道: {channel_url} | 语言：{target_language}")
-            target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
+            target_youtuber_channel_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
             
             logger.info(f"main_v3 > 解析{channel_url}完毕, 花费{format_second_to_time_string(spend_scrape_time)}")
-            if len(target_youtuber_blogger_urls) <= 0:
+            if len(target_youtuber_channel_urls) <= 0:
                 logger.error("main_v3 > 无资源导入")
                 # continue
-                raise ValueError("target_youtuber_blogger_urls 为空")
+                raise ValueError("target_youtuber_channel_urls 为空")
         except KeyboardInterrupt:
             logger.warning("KeyboardInterrupt detected, terminating pool...")
             exit(1)
@@ -115,31 +116,29 @@ def main_v3():
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
 
         else:
-            init_url = channel_url
             # 统计总时长
             total_duration = sum(
-                [int(duration_url.split(' ')[1].strip().split('.')[0]) 
-                for duration_url in target_youtuber_blogger_urls 
-                if 'NA' not in duration_url]) 
-            total_count = len(target_youtuber_blogger_urls)
-            logger.info(f"main_v3 > 频道:{channel_url}, 总资源数:{total_count}, 总时长:{total_duration}")
-
+                [float(duration_url[1]) 
+                for duration_url in target_youtuber_channel_urls 
+                if 'NA' not in duration_url])
+            # 统计总视频数量
+            total_count = len(target_youtuber_channel_urls)
         try:
             # 使用多进程处理入库
             with Pool(5) as pool:
                 # 将列表分成5个子集，分配给每个进程
-                # chunks = np.array_split(target_youtuber_blogger_urls, 5)
-                chunk_size = len(target_youtuber_blogger_urls) // 5
-                chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
+                # chunks = np.array_split(target_youtuber_channel_urls, 5)
+                chunk_size = len(target_youtuber_channel_urls) // 5
+                chunks = [target_youtuber_channel_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_channel_urls), chunk_size)]
                 # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
                 if len(chunks) < 5:
-                    chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
+                    chunks.append(target_youtuber_channel_urls[len(chunks)*chunk_size:])
                 time_ed = time.time()
                 spend_scrape_time =  time_ed - time_st  # 采集总时间
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for pool_num, chunk in enumerate(chunks):
                     # 将各项参数封装为Video对象
-                    video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_blogger_urls))
+                    video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_channel_urls))
                     pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
                     sleep(10)
                 pool.close()
