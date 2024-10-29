@@ -13,7 +13,7 @@ https://www.youtube.com/@vtv24/videos
 
 '''
 
-# CHANNEL_URL = "https://www.youtube.com/@failarmy/videos"
+# blogger_url = "https://www.youtube.com/@failarmy/videos"
                         # blogger_url: str
 def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库模型 
@@ -40,7 +40,6 @@ def get_ytb_blogger_url(blogger_url:tuple, language:str, task_id:str)->ytb_model
 
     db_video = ytb_model.Video(
         id=int(0),
-        # vid="ytb_bby_" + vid,
         vid="ytb_" + vid,
         position=int(3),
         source_type=int(3),

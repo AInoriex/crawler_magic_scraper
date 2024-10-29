@@ -51,7 +51,7 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
             time_st = time()
             # 格式化视频信息
             # if video_tuple is None:
-            #     logger.error("Scraper Pipeline > video_url invalid")
+            #     logger.error("import_data_to_db_pip > video_url invalid")
             #     break
             video_object = get_ytb_blogger_url(
                 blogger_url=video_url,
@@ -96,12 +96,12 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, spend_s
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
             # 失败过多直接退出
             # if continue_fail_count > LIMIT_FAIL_COUNT:
-            #     logger.error(f"Scraper Pipeline > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
+            #     logger.error(f"import_data_to_db_pip > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
             #     exit(1)
             continue
 
         except KeyboardInterrupt:
-            logger.warning(f"Scraper Pipeline > pid {pid} interrupted processing, exit.")
+            logger.warning(f"import_data_to_db_pip > pid {pid} interrupted processing, exit.")
             # pool_num.terminate()  # 直接终止所有子进程
             # sys.exit(1)  # 退出程序
             raise KeyboardInterrupt
@@ -117,33 +117,32 @@ def ytb_main():
         logger.error("[ERROR] please input target language.")
         exit()
     for channel_url in CHANNEL_URL_LIST:
-        logger.info(f"Scraper Pipeline > 当前处理频道: {channel_url} | 语言：{target_language}")
+        logger.info(f"ytb_main > 当前处理频道: {channel_url} | 语言：{target_language}")
         time_st = time.time()  # 获取采集数据的起始时间
         target_youtuber_blogger_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
-        # 统计总时长
+        if len(target_youtuber_blogger_urls) <= 0:  # 判断是否获取到视频数据，若没有跳出当次循环
+            logger.error("ytb_main > no watch urls to import.")
+            # exit()
+            continue
+
+        # 统计
         total_duration = sum(
             [int(duration_url.split(' ')[1].strip().split('.')[0]) 
              for duration_url in target_youtuber_blogger_urls 
              if 'NA' not in duration_url]) 
-        if len(target_youtuber_blogger_urls) <= 0:  # 判断是否获取到视频数据，若没有跳出当次循环
-            logger.error("Scraper Pipeline > no watch urls to import.")
-            # exit()
-            continue
-        total_duration = 0
-        # total_duration = sum([int(duration_url.split(' ')[1].strip().split('.')[0]) for duration_url in target_youtuber_blogger_urls])
         total_count = len(target_youtuber_blogger_urls)
-        init_url = channel_url
+        logger.info(f"ytb_main > 频道:{channel_url}, 总资源数:{total_count}, 总时长:{total_duration}")
 
-        logger.info(f"Scraper Pipeline > 频道:{channel_url}, 总资源数:{total_count}, 总时长:{total_duration}")
+        # 使用多进程处理video_url_list入库
         try:
-            # 使用多进程处理video_url_list入库 # 创建进程池
-            with multiprocessing.Pool(5) as pool:
-                # 将列表分成5个子集，分配给每个进程
+            # 创建进程池
+            with multiprocessing.Pool(4) as pool:
+                # 将列表分成4个子集，分配给每个进程
                 chunk_size = len(target_youtuber_blogger_urls) // 4
                 chunks = [target_youtuber_blogger_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_blogger_urls), chunk_size)]
-                # print(chunks)
+                # print("debug chunks: {chunks}")
                 # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
-                if len(chunks) < 5:
+                if len(chunks) < 4:
                     chunks.append(target_youtuber_blogger_urls[len(chunks)*chunk_size:])
                 time_ed = time.time()
                 spend_scrape_time =  time_ed - time_st  # 采集总时间
@@ -155,6 +154,8 @@ def ytb_main():
                     time.sleep(1)
                 pool.close()
                 pool.join()  # 等待所有进程结束
+                logger.info(f"ytb_main > 频道:{channel_url}入库处理完毕")
+                
                 # 结束时频道通知飞书
                 now_str = get_now_time_string()
                 notice_text = f"[Youtube Scraper | DEBUG] 采集{channel_url}结束. \
