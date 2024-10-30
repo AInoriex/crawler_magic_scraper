@@ -3,6 +3,7 @@ from requests import get, post
 from uuid import uuid4
 from database.ytb_model import Video
 from os import getenv
+from time import sleep
 
 # Using the Database Apis
 if getenv("DATABASE_GET_API") == '':
@@ -21,7 +22,7 @@ def get_download_list(qid=0) -> Video | None:
     url = "%s?sign=%d&id=%d" % (getenv("DATABASE_GET_API"), get_time_stamp(), qid)
     # print(f"get_download_list > req, url:{url}")
     resp = get(url=url)
-    print(f"get_download_list > resp, status_code:{resp.status_code}, content:{resp.content}")
+    print(f"get_download_list > resp.status_code:{resp.status_code} | resp.content:{str(resp.content, encoding='utf-8')}")
     assert resp.status_code == 200
     resp_json = resp.json()
     # print("get_download_list > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
@@ -63,13 +64,13 @@ def update_status(video: Video):
     # print("update_status > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
     resp_code = resp_json["code"]
     if resp_code != 0:
-        raise Exception(f"更新数据接口返回失败, req:{req}, resp:{resp.content}")
+        raise Exception(f"更新数据接口返回失败, req:{req}, resp:{str(resp.content, encoding='utf-8')}")
     else:
         print(f"update_status > 更新状态成功 req:{req}, resp:{resp_json}")
 
 
-def create_video(video: Video, retries:int = 3):
-    ''' 创建ytb记录 '''
+def create_video(video:Video, retry:int=3):
+    ''' 创建crawler数据库记录 '''
     try:
         # url = getenv("DATABASE_CREATE_API")
         url = "%s?sign=%d" % (getenv("DATABASE_CREATE_API"), get_time_stamp())
@@ -82,23 +83,20 @@ def create_video(video: Video, retries:int = 3):
         if resp_code == 0:
             # print(f"create_video > 创建数据成功 req:{req}, resp:{resp_json}")
             print(f"create_video > 创建数据成功 vid:{req.get('vid')}, link:{req.get('source_link')}")
-            # with open("links.txt", "a") as f:
-            #     f.write(f"{req.get('source_link')}\n")
         elif resp_code == 25000:
-            print(
-                f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")
+            print(f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")
         else:
-            # elif resp_code != 0:
-            print(f"create_video > 资源创建失败, req:{req}, resp:{resp.content}")
-            raise Exception(f"创建数据接口返回失败, req:{req}, resp:{resp.content}")
+            # print(f"create_video > 资源创建失败, req:{req}, resp:{str(resp.content, encoding='utf-8')}")
+            raise Exception(f"资源创建失败, req:{req}, resp:{str(resp.content, encoding='utf-8')}")
     except Exception as e:
-        print("create_video > 未知错误: ", e)
-        if retries > 0:
-            print(f"create_video > 重新尝试入库, 剩余尝试次数: {retries}")
-            return create_video(video, retries - 1)  # 递归重试
+        print(f"create_video > 入库处理失败: {e}")
+        if retry > 0:
+            print(f"create_video > 重新尝试入库, 剩余尝试次数: {retry}")
+            sleep(1)
+            return create_video(video, retry - 1)
         else:
-            print("create_video > 达到最大重试次数，放弃入库。")
-        return
+            print("create_video > 达到最大重试次数，放弃入库")
+            raise e
 
 
 if __name__ == "__main__":

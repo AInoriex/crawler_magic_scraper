@@ -7,9 +7,9 @@ from sys import argv
 from time import sleep, time
 from utils import logger as ulog
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
+from handler.yt_dlp import ytb_dlp_format_video
 from utils.lark import alarm_lark_text
 from utils.utime import get_now_time_string, format_second_to_time_string
-from database import ytb_init_video
 
 # youtube_search_python
 def main():
@@ -74,37 +74,41 @@ def main_v3():
     from multiprocessing import Pool
 
     logger = ulog.init_logger("main_v3")
-    if len(argv) <= 2:
-        print("[ERROR] Too less arguments of urls to scrape.")
-        print("[INFO] Example: python ytb_scrape_arg.py yue https://www.youtube.com/@video-df1md")
-        exit(0)
-    
-    pid = getpid()  # 捕获进程
-    task_id = str(uuid4())  # 获取任务ID
-    target_language = argv[1]
-    opt = input(f"[DEBUG] Check your input, language:{target_language}, url:{argv[2:]}. Continue?(Y/N)")
-    if opt not in ["Y", "y", "YES", "yes"]:
-        logger.error("[ERROR] please input target language.")
-        exit(1)
+    pid = getpid()
+    task_id = str(uuid4())  # 生成任务ID
 
+    if len(argv) <= 2:
+        print("[ERROR] Please check your arguments to scrape.")
+        print("Example: python ytb_scrape_arg.py yue https://www.youtube.com/@video-df1md")
+        exit(0)
+    target_language = argv[1]
+    logger.info(f"Task ID:{task_id} | Check your input, language:{target_language}, url:{argv[2:]}")
+    opt = input(f"\nContinue? (Y/N)")
+    if opt not in ["Y", "y", "YES", "yes"]:
+        logger.error("[EXIT] bye.")
+        exit(1)
+    
     for channel_url in argv[2:]:
-        time_st = time.time()  # 获取采集数据的起始时间
+        # 判断url有效性
+        if channel_url == "":
+            logger.info(f"main_v3 > [!] url无效，跳过处理")
+            continue
         try:
             # 解析数据
             logger.info(f"main_v3 > 当前正在解析频道: {channel_url} | 语言：{target_language}")
+            time_1 = time()
             target_youtuber_channel_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
-            
+            time_2 = time()
+            spend_scrape_time =  time_2 - time_1  # 采集总时间
             logger.info(f"main_v3 > 解析{channel_url}完毕, 花费{format_second_to_time_string(spend_scrape_time)}")
             if len(target_youtuber_channel_urls) <= 0:
                 logger.error("main_v3 > 无资源导入")
-                # continue
                 raise ValueError("target_youtuber_channel_urls 为空")
         except KeyboardInterrupt:
             logger.warning("KeyboardInterrupt detected, terminating pool...")
             exit(1)
         except Exception as e:
-            # continue_fail_count += 1
-            logger.error(f"main_v3 > 频道获取链接失败, {e}")
+            logger.error(f"main_v3 > 频道解析链接失败, {e}")
             logger.error(e, stack_info=True)
 
             # alarm to Lark Bot
@@ -114,7 +118,7 @@ def main_v3():
                 \n\tError: {e} \
                 \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
-
+            continue
         else:
             # 统计总时长
             total_duration = sum(
@@ -123,26 +127,29 @@ def main_v3():
                 if 'NA' not in duration_url])
             # 统计总视频数量
             total_count = len(target_youtuber_channel_urls)
+        finally:
+            sleep(1)
+
         try:
             # 使用多进程处理入库
+            logger.info(f"main_v3 > 频道: {channel_url} | 语言：{target_language} 准备入库")
             with Pool(5) as pool:
                 # 将列表分成5个子集，分配给每个进程
                 # chunks = np.array_split(target_youtuber_channel_urls, 5)
                 chunk_size = len(target_youtuber_channel_urls) // 5
                 chunks = [target_youtuber_channel_urls[i:i + chunk_size] for i in range(0, len(target_youtuber_channel_urls), chunk_size)]
-                # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
+                # 列表的长度可能会有剩余的元素，分配到最后一个子集中
                 if len(chunks) < 5:
                     chunks.append(target_youtuber_channel_urls[len(chunks)*chunk_size:])
-                time_ed = time.time()
-                spend_scrape_time =  time_ed - time_st  # 采集总时间
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for pool_num, chunk in enumerate(chunks):
                     # 将各项参数封装为Video对象
-                    video_chunk = ytb_init_video.Video(channel_url, chunk, total_duration, target_language, len(target_youtuber_channel_urls))
-                    pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
+                    video_chunk = ytb_dlp_format_video(channel_url, chunk, target_language)
+                    pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, pid, task_id))
                     sleep(10)
                 pool.close()
                 pool.join()  # 等待所有进程结束
+            logger.info(f"main_v3 > 频道: {channel_url} | 语言：{target_language} 入库完成")
         except KeyboardInterrupt:
             # 捕获到 Ctrl+C 时，确保终止所有子进程
             logger.warning("KeyboardInterrupt detected, terminating pool...")
@@ -150,7 +157,6 @@ def main_v3():
             print("All processes have been terminated.")
             exit(1)
         except Exception as e:
-            # continue_fail_count += 1
             logger.error(f"main_v3 > 入库失败, {e}")
             logger.error(e, stack_info=True)
 
@@ -168,9 +174,12 @@ def main_v3():
                 \n\t任务ID: {task_id} \
                 \n\t数据总数量: {total_count} \
                 \n\t数据总时长: {total_duration} \
-                \n\t采集时间: {format_second_to_time_string(time.time() - time_st)} \
+                \n\t解析时长: {format_second_to_time_string(spend_scrape_time)} \
+                \n\t处理总时长: {format_second_to_time_string(time() - time_1)} \
                 \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
+        finally:
+            sleep(1)
 
 if __name__ == "__main__":
     main_v3()
