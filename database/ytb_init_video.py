@@ -12,8 +12,8 @@ class Video:
     def __init__(
         self,
         channel_url: str,
-        video_url: str,
-        duration: float = None,
+        video_url: list,
+        duration: list = None,
         language: str = None,
     ):  
         self.channel_url = channel_url
@@ -23,12 +23,12 @@ class Video:
 
     def __str__(self) -> str:
         return (
-            f"Video(blogger_url={self.channel_url}webpage_url={self.video_url}, duration={self.duration}, language={self.language})"
+            f"Video(channel_url={self.channel_url}, webpage_url={self.video_url}, duration={self.duration}, language={self.language})"
         )
     
     def dict(self) -> dict:
         return {
-            "blogger_url": self.channel_url,
+            "channel_url": self.channel_url,
             "webpage_url": self.video_url,
             "duration": self.duration,
             "language": self.language,

@@ -5,8 +5,8 @@ load_dotenv()
 import os
 import time
 from database import ytb_api
-from handler.yt_dlp import get_ytb_blogger_url, ytb_dlp_automatic
-from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file, yt_dlp_read_url_from_file_v2
+from handler.yt_dlp import get_ytb_channel_url
+from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v2
 from utils import logger
 from utils.ip import get_local_ip, get_public_ip
 from utils.lark import alarm_lark_text
@@ -26,18 +26,9 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-# 印尼语 DONE
-# TEXT = 'Yinniyu'
-# target_language = "id"
-# https://www.youtube.com/@DylandPROS/videos
-# https://www.youtube.com/@radityadika
-# https://www.youtube.com/@tvOneNews/videos
-# INPUT = 'https://www.youtube.com/@tvOneNews/videos'
-# file_path = 'G:\crawler_magic_scraper\download_lang\Yinniyu.txt'
-
 # 俄语
-# TEXT = 'Eyu'
-target_language = ""
+# LANGUAGE = 'Eyu'
+target_language = "ru"
 CHANNEL_URL_LIST = [
     # 已处理
     
@@ -52,7 +43,7 @@ def scrape_ytb_channel_data(pid:str, channel_url:str, language:str):
     return_url_list = []
 
     # 1. 使用yt-dlp获取所有url写入txt
-    # file_path = yt_dlp_read_url_from_file(TEXT, INPUT)
+    # file_path = yt_dlp_read_url_from_file(LANGUAGE, INPUT)
     file_path = yt_dlp_read_url_from_file_v2(url=channel_url, language=language)
 
     # 2. 读取txt内url
@@ -98,9 +89,11 @@ def import_data_to_db(pid:int, channel_url:tuple, language="unknown"):
     try:
         time_st = time.time()
         # 油管数据采集
-        video_list = get_ytb_blogger_url(
-            blogger_url=channel_url,
+        video_list = get_ytb_channel_url(
+            video_url=channel_url[0],
+            duration=channel_url[1],
             language=language,
+            task_id=""
         )
 
         # 油管采集字幕

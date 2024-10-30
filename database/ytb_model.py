@@ -39,10 +39,10 @@ class Video:
         vid: 视频ID
         position: 1: cas, 2: cuhk, 3: quwan
         source_type: 1: Bilibili, 2: 喜马拉雅, 3: YouTube
-        blogger_url: 博主链接
         source_link: 完整视频链接
         duration: 原始长度
         language: 视频主要语言
+        cloud_type: 云存储类型
         cloud_path: 云存储的路径
         result_path: 处理结果路径
         status: 0: 已爬取, 1: 本地已下载, 2: 已上传云端未处理, 3: 已处理未上传, 4: 已处理已上传, -1 失败

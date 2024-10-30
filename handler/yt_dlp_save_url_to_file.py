@@ -24,10 +24,10 @@ def yt_dlp_read_url_from_file_v2(url:str, language:str="") -> str:
     """
     使用yt-dlp从url中读取视频信息
 
-    :param: url (str): YouTube频道页面URL 
+    :param url: (str) YouTube频道页面URL 
             exp. https://www.youtube.com/@Nhyxinhne/videos
-    :param: language (str, optional): 语言代码. Defaults to "".
-    :param: return 保存的文件的绝对路径
+    :param language:  (str, optional): 语言代码. Defaults to "".
+    :return: 保存的文件的绝对路径
     """
     filename = url.split("@")[1].split(r"/")[0]
     if filename == "":

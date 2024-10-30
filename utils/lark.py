@@ -1,5 +1,6 @@
 import requests
 import json
+from time import sleep
 
 # class LarkNotice():
 #     def __init__(self, notice_text) -> None:
@@ -28,13 +29,14 @@ def alarm_lark_text(webhook:str, text:str, __retry=3)->bool:
             # return False
             raise KeyError("resp['code'] != 0")
     except Exception as e:
-        print(f"alarm_lark_text > requests.post failed, webhook:{webhook}, error:{e}, retry:{__retry}")
+        print(f"Lark > 通知飞书失败, webhook:{webhook}, resp:{resp.status_code}|{str(resp.content, encoding='utf-8')}, error:{e}, retry:{__retry}")
         if __retry > 0:
+            sleep(1)
             return alarm_lark_text(webhook=webhook, text=text, __retry=__retry-1)
         else:
             return False
     else:
-        print(f"Lark > 已通知飞书: {resp}")
+        # print(f"Lark > 已通知飞书: resp:{resp.status_code}|{str(resp.content, encoding='utf-8')}")
         return True
 
 if __name__ == "__main__":

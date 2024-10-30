@@ -1,32 +1,26 @@
 # 加载.env文件
 from dotenv import load_dotenv
 load_dotenv()
+
 from json import dumps
 from database import ytb_model, ytb_init_video 
-
 import re
 
-'''
-https://www.youtube.com/@daihanoi-htv/videos
-https://www.youtube.com/@toancanh24/videos
-https://www.youtube.com/@vtv24/videos
-
-'''
-
-# blogger_url = "https://www.youtube.com/@failarmy/videos"
-                        # blogger_url: str
-def get_ytb_blogger_url(video_url:str, duration:float, language:str, task_id:str)->ytb_model.Video:
-    ''' 格式化视频信息为数据库模型 
-    @Paras video_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
-    @Return [Video]
+def get_ytb_channel_url(video_url:str, duration:float, language:str, task_id:str)->ytb_model.Video:
+    ''' 格式化视频信息为数据库入库对象
+    :param video_url: 博主url; eg: https://www.youtube.com/@failarmy/videos
+    :param duration: 时长
+    :param language: 语言
+    :param task_id: 任务id
+    :return: ytb_model.Video
     '''
     # 提取信息
-    # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
-    # print(f"params > blogger_url:{blogger_url} language:{language} task_id:{task_id}")
+    # print(" ==================== [DEBUG] get_ytb_channel_url ==================== ")
+    # print(f"params > channel_url:{channel_url} language:{language} task_id:{task_id}")
     pattern = r'v=([^&]+)'
     vid = re.search(pattern, video_url).group().split('=')[1].split(' ')[0]
-    # print(f"object info > vid:{vid} duration:{duration} blogger_url:{blogger_url}")
-    # print(" ==================== [DEBUG] get_ytb_blogger_url ==================== ")
+    # print(f"object info > vid:{vid} duration:{duration} channel_url:{channel_url}")
+    # print(" ==================== [DEBUG] get_ytb_channel_url ==================== ")
     # info_dict = {
     # "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
     # }
@@ -42,10 +36,10 @@ def get_ytb_blogger_url(video_url:str, duration:float, language:str, task_id:str
         position=int(3),
         source_type=int(3),
         cloud_type=int(0),
-        cloud_path="",
-        source_link=video_url,
-        language=language,
-        duration=duration,
+        cloud_path=str(""),
+        source_link=str(video_url),
+        language=str(language),
+        duration=int(duration),
         info=info
     )
     # print(db_video)
@@ -64,20 +58,20 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     pattern = r'v=([^&]+)'
     vid = re.search(pattern, video_url).group().split('=')[1].split(' ')[0]
     duration = int(video_url.split(' ')[1].split('.')[0])
-    blogger_url = video_url.split(' ')[0]
+    channel_url = video_url.split(' ')[0]
 
     # 封装info
     info_dict ={}
     info_dict['cloud_save_path'] = ""
     # 判断字幕
-    # commend = f'yt-dlp --username "oauth2" --password "" --skip-download --list-subs --verbose {blogger_url}'
+    # commend = f'yt-dlp --username "oauth2" --password "" --skip-download --list-subs --verbose {channel_url}'
     # result = subprocess.run(commend, shell=True, capture_output=True, text=True)
     # # print(result.stdout)
     # if "no automatic captions" in result.stdout:  # 判断result中是否存在字幕文件
-    #     print(f"{blogger_url}: no automatic captions")
+    #     print(f"{channel_url}: no automatic captions")
     #     info_dict['has_srt'] = False
     # else:
-    #     print(f"{blogger_url}: have automatic captions")
+    #     print(f"{channel_url}: have automatic captions")
     #     info_dict['has_srt'] = True
     info = dumps(info_dict)
 
@@ -88,7 +82,7 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
         source_type=int(3),
         cloud_type=int(0),
         cloud_path="",
-        source_link=blogger_url,
+        source_link=channel_url,
         language=language,
         duration=duration,
         info=info
@@ -96,22 +90,22 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     # print(db_video)
     return db_video
 
-def ytb_dlp_format_video(channel_url:str, video_urls:list, language:str) -> ytb_init_video.Video:
+def ytb_dlp_format_video(channel_url:str, video_data:list, language:str) -> ytb_init_video.Video:
     """
     格式化视频信息为Video类型
 
     :param channel_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
-    :param video_url: 完整视频链接
+    :param video_data: 完整视频解析数据list(tuple)
     :param language: 语言   
+    :return: ytb_init_video.Video
     """
     # 提取信息
     video_url = []  # 存储视频url列表
     video_duration = []  # 存储视频时长列表
-    for video_info in video_urls:
-        video_url.append(video_info[0])
-        video_duration.append(video_info[1])
+    for v in video_data:
+        video_url.append(v[0])
+        video_duration.append(v[1])
 
-    # print(video_url,"#########",video_duration)
     pip_video = ytb_init_video.Video(
         channel_url=channel_url,
         video_url=video_url,
