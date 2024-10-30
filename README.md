@@ -41,22 +41,38 @@
 
 3. 运行程序
 
-   - 批量处理：需要填写 `target_youtuber_channel_urls` 批量博主主页链接 和 `target_language` 目标语言
+   1. 本地代码执行
    
-      ```
-      python ytb_scrape_yt_dlp.py
-      ```
+      - 修改`ytb_scrape_yeb_dlp_pip` 代码， 填写`CHANNEL_URL_LIST` 油管链接 和 `target_language` 语言编码（详见3.3）
    
-   - 单个处理：需要填写 `target_youtuber_channel_urls` 批量博主主页链接 和 `target_language` 目标语言
+      - 运行程序
    
-     ```
-     python ytb_scrape_v2_arg.py ms https://www.youtube.com/@AlyssaDezekTV/videos
-     ```
+         ```python
+         python ytb_scrape_yeb_dlp_pip.py
+         ```
+   
+   2.  命令行执行
+   
+     - 执行以下命令，参数1：语言编码（详见3.3）；参数2-N：n个油管链接
+   
+       ```python
+       # exp01 语言:马来语 Youtuber:AlyssaDezekTV
+       python ytb_scrape_v2_arg.py ms https://www.youtube.com/@AlyssaDezekTV/videos
+           
+       # exp02 语言:德语 Youtuber:AlyssaDezekTV
+       python ytb_scrape_v2_arg.py de https://www.youtube.com/@gronkh/videos
+       ```
+   
+   3. 附：语言编码规范参考
+   
+      - 优先使用：[ISO 639-1 - 维基百科，自由的百科全书](https://zh.wikipedia.org/wiki/ISO_639-1)
+      - [ISO 639-3 - 维基百科，自由的百科全书](https://zh.wikipedia.org/wiki/ISO_639-3)
+
 
 
 ## 特别鸣谢
 
    [alexmercerind/youtube-search-python](https://github.com/alexmercerind/youtube-search-python)
-   
+
    [yt-dlp/yt-dlp: A feature-rich command-line audio/video downloader](https://github.com/yt-dlp/yt-dlp)
 ​	
