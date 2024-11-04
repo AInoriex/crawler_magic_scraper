@@ -58,26 +58,23 @@ def yt_dlp_read_url_from_file_v3(url:str, language:str="") -> list:
     # yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s" --sleep-requests 2 -v https://www.youtube.com/@kinitv/videos
     command = f'yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s" --sleep-requests 2 -v {url}'
     output_lines = []
-    try:
-        # 使用 Popen 捕获 yt-dlp 输出
-        # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
-        for line in process.stdout:
-            print(line, end='')
-            if line.startswith("https://www.youtube.com"):
-                line = str(line.strip().split('\n')[0])
-                output_lines.append(line)
-        # stdout, stderr = process.communicate()
-        process.wait()
+    # 使用 Popen 捕获 yt-dlp 输出
+    # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True)
+    # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
+    for line in process.stdout:
+        print(line, end='')
+        if line.startswith("https://www.youtube.com"):
+            line = str(line.strip().split('\n')[0])
+            output_lines.append(line)
+    # stdout, stderr = process.communicate()
+    process.wait()
 
-        # 错误检查
-        if process.stderr:
-            error_message = process.stderr.decode('utf-8').strip()
-            # return []  # 如果发生错误，返回空列表
-            raise ValueError(f"yt-dlp解析失败, {error_message}")
-    except Exception as e:
-        print(f"yt_dlp_read_url_from_file_v3 > Error:{e}")
-        raise e
+    # 错误检查
+    if process.stderr:
+        error_message = process.stderr.decode('utf-8').strip()
+        # return []  # 如果发生错误，返回空列表
+        raise ValueError(f"yt-dlp解析失败, {error_message}")
     
     output_list = []
     for line in output_lines:
