@@ -56,28 +56,30 @@ def yt_dlp_read_url_from_file_v3(url:str, language:str="") -> list:
     """
     # 目前下载的主要是 webpage_url 和 duration 俩个字段信息，使用 yt-dlp 命令获取视频网页链接和时长
     # yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s" --sleep-requests 2 -v https://www.youtube.com/@kinitv/videos
-    command = f'yt-dlp --flat-playlist --print --print-traffic "%(webpage_url)s %(duration)s" --sleep-requests 2 -v {url}'
+    command = f'yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s" --sleep-requests 2 -v {url}'
+    output_lines = []
+    try:
+        # 使用 Popen 捕获 yt-dlp 输出
+        # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
+        for line in process.stdout:
+            print(line, end='')
+            if line.startswith("https://www.youtube.com"):
+                line = str(line.strip().split('\n')[0])
+                output_lines.append(line)
+        # stdout, stderr = process.communicate()
+        process.wait()
 
-    # 使用 Popen 捕获 yt-dlp 输出
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+        # 错误检查
+        if process.stderr:
+            error_message = process.stderr.decode('utf-8').strip()
+            # return []  # 如果发生错误，返回空列表
+            raise ValueError(f"yt-dlp解析失败, {error_message}")
+    except Exception as e:
+        print(f"yt_dlp_read_url_from_file_v3 > Error:{e}")
+        raise e
     
-    for line in process.stdout:
-        print(line, end='') 
-    
-    # process.wait()
-    stdout, stderr = process.communicate()
-
-    # 错误检查
-    if stderr:
-        error_message = stderr.decode('utf-8').strip()
-        print(f"Error: {error_message}")
-        # return []  # 如果发生错误，返回空列表
-        raise ValueError(f"yt-dlp解析失败, {error_message}")
-    
-   # 解析标准输出数据
     output_list = []
-    output_lines = stdout.decode('utf-8').strip().split('\n')
-    
     for line in output_lines:
         # 检查每行数据并解析网页链接和视频时长
         parts = line.split(' ')
