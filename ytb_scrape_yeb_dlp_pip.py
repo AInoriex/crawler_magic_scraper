@@ -7,6 +7,7 @@ import sys
 import uuid
 from os import getenv, getpid
 from time import sleep, time
+from random import random, randint
 from database import ytb_api, ytb_init_video
 from handler.yt_dlp import ytb_dlp_format_video, get_ytb_channel_url
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
@@ -63,7 +64,6 @@ def import_data_to_db_pip(video_obj:ytb_init_video.Video, pool_num:int, pid:int,
             # 将数据更新入库
             ytb_api.create_video(video_object)
             # ytb_api_v2.sign_database(video_object)
-            sleep(0.5)
 
             # 日志记录
             time_ed = time()
@@ -79,7 +79,7 @@ def import_data_to_db_pip(video_obj:ytb_init_video.Video, pool_num:int, pid:int,
                 \n\t任务ID: {task_id} \
                 \n\tIP: {local_ip} | {public_ip} \
                 \n\tTime: {get_now_time_string()}"
-            alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_DEBUG"), text=notice_text)
+            # alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_DEBUG"), text=notice_text)
         except Exception as e:
             # continue_fail_count += 1
             logger.error(f"import_data_to_db_pip > 第{pool_num}个进程, 处理第{index}个数据 {video_obj.channel_url} 失败")
@@ -106,7 +106,7 @@ def import_data_to_db_pip(video_obj:ytb_init_video.Video, pool_num:int, pid:int,
             # sys.exit(1)  # 退出程序
             raise KeyboardInterrupt
         finally:
-            # sleep(1)
+            sleep(randint(1, 3))
             pass
 
 def ytb_main():
