@@ -22,9 +22,9 @@ def sign_database(video:Video):
 
     req = video.dict()
 
-    info_dict ={}
-    info_dict['cloud_save_path'] = ""
-    info = dumps(info_dict)
+    # info_dict ={}
+    # info_dict['cloud_save_path'] = ""
+    # info = dumps(info_dict)
     # 入库(方法)
     vid = req.get('vid')
     position = req.get('position')
@@ -36,12 +36,12 @@ def sign_database(video:Video):
     language = str(req.get('language'))
     status = int(req.get('status'))
     lock = req.get('`lock`')
-    info = info
+    info = req.get('info')
+    source_id = req.get('source_id')
 
-
-    insert_sql = 'INSERT INTO ytb_dlp (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, `lock`, info) \
-      VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-    values = (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, lock, info)
+    insert_sql = 'INSERT INTO ytb_dlp (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, `lock`, info, source_id) \
+      VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+    values = (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, lock, info, source_id)
     cursor.execute(insert_sql, values)
 
     # 提交事务

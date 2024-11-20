@@ -32,9 +32,12 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-target_language = "yue"
+target_language = "it"
 
-CHANNEL_URL_LIST = ["https://www.youtube.com/@user-qx9so9pk1m/videos"]
+# 正在处理
+CHANNEL_URL_LIST = ["https://www.youtube.com/@TuttoAndroid/videos",
+                    "https://www.youtube.com/@CiccioGamer89/videos",
+                    "https://www.youtube.com/@DilettaLeotta/videos"]
 
 def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, pid:int, task_id:str):
     """
@@ -46,20 +49,25 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, pid:int
     :param pid: 进程ID
     :param task_id: 任务ID
     """
-
+    # 大幅度需求
+    channel_url_name = video_urls.channel_url.split('@')[1].split(r"/")[0]
     # 频道通知开始
     # 数据导入数据库
     index = 0
-    for video_url, duration in zip(video_urls.video_url, video_urls.duration):
+    for video_url, duration in zip(video_urls.source_link, video_urls.duration):
+        if duration == 'NA':
+            duration = int(0)
         index += 1
         try:
             logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_url}")
             time_st = time.time()
             video_object = get_ytb_blogger_url(
+                file_name = channel_url_name,
                 video_url=video_url,
                 language=video_urls.language,
-                duration=float(duration),
-                task_id=task_id
+                duration=int(float(duration)),
+                task_id=task_id,
+                source_id=video_urls.source_id
             )
             # 将数据更新入库
             # ytb_api.create_video(video_object)
@@ -143,8 +151,6 @@ def ytb_main():
                 # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
                 if len(chunks) < 5:
                     chunks.append(target_youtuber_channel_urls[len(chunks)*chunk_size:])
-                time_ed = time.time()
-                spend_scrape_time =  time_ed - time_st  # 采集总时间
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for pool_num, chunk in enumerate(chunks):
                     # 将各项参数封装为Video对象
@@ -153,17 +159,20 @@ def ytb_main():
                     time.sleep(0.5)
                 pool.close()
                 pool.join()  # 等待所有进程结束
+                time_ed = time.time()
                 # 频道通知开始
+                spend_scrape_time =  time_ed - time_st  # 采集总时间
                 now_str = get_now_time_string()
                 notice_text = f"[Youtube Scraper | DEBUG] 采集结束. \
                     \n\t频道URL: {channel_url} \
                     \n\t语言: {target_language} \
                     \n\t入库视频数量: {total_count} \
                     \n\t入库时长(小时):{round((total_duration / 3600),3)} \
+                    \n\t入库时长(分钟):{round((total_duration / 60),3)} \
                     \n\t任务ID: {task_id} \
                     \n\t任务处理时间: {format_second_to_time_string(spend_scrape_time)} \
                     \n\t通知时间: {now_str}"
-                alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
+                alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK_V2"), text=notice_text)
         except KeyboardInterrupt:
             # 捕获到 Ctrl+C 时，确保终止所有子进程
             logger.warning("KeyboardInterrupt detected, terminating pool...")
