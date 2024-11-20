@@ -78,9 +78,9 @@ class Video:
 
     def __init__(
         self,
-        vid: str,
-        source_type: int,
-        cloud_path: str,
+        vid: str = None,
+        source_type: int = None,
+        cloud_path: str = None,
         id: int = 0,
         position: int = 1,
         cloud_type: int = None,
@@ -108,7 +108,7 @@ class Video:
 
     def __str__(self) -> str:
         return (
-            f"Video(vid={self.vid}, position={self.position}, source_id={self.source_id}"
+            f"Video(vid={self.vid}, position={self.position}, source_id={self.source_id}, "
             f"source_type={self.source_type}, source_link={self.source_link}, duration={self.duration}, "
             f"cloud_type={self.cloud_type}, cloud_path={self.cloud_path}, "
             f"language={self.language}, status={self.status}, `lock`={self.lock}, info={self.info})"

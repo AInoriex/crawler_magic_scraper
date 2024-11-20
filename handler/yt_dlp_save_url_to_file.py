@@ -85,13 +85,13 @@ def yt_dlp_read_url_from_file_v3(url:str, language:str="") -> list:
         else:
             print(f"Warning: 无法解析数据行: '{line}'")
     print(f"共获取到 {len(output_list)} 条视频数据")
-    print(output_list)
+    # print(output_list)
     return output_list
 
 if __name__ == "__main__":
-    yt_dlp_read_url_from_file_v3(
-        url="https://www.youtube.com/@Fei-zi/videos",
-        language="yue"
-    )
+    # yt_dlp_read_url_from_file_v3(
+    #     url="https://www.youtube.com/@Fei-zi/videos",
+    #     language="yue"
+    # )
     pass
 # https://www.youtube.com/watch?v=S4e8ncrOKLo 658.0 UCgdiE5jT-77eUMLXn66NLCQ

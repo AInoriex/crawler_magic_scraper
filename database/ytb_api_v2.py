@@ -39,7 +39,7 @@ def sign_database(video:Video):
     info = req.get('info')
     source_id = req.get('source_id')
 
-    insert_sql = 'INSERT INTO ytb_dlp (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, `lock`, info, source_id) \
+    insert_sql = 'INSERT INTO crawler_download_info (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, `lock`, info, source_id) \
       VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
     values = (vid, position, source_type, source_link, duration, cloud_type, cloud_path, language, status, lock, info, source_id)
     cursor.execute(insert_sql, values)

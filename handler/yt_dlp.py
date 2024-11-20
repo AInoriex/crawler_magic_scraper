@@ -111,15 +111,18 @@ def ytb_dlp_format_video(channel_url:str, video_urls:list, language:str) -> ytb_
     # 提取信息
     video_url = []  # 存储视频url列表
     video_duration = []  # 存储视频时长列表
+    video_source_id = []  # 存储视频ID
     for video_info in video_urls:
         video_url.append(video_info[0])
         video_duration.append(video_info[1])
+        video_source_id.append(video_info[2])
 
     # print(video_url,"#########",video_duration)
     pip_video = ytb_init_video.Video(
         channel_url=channel_url,
-        video_url=video_url,
+        source_link=video_url,
         duration=video_duration,
         language=language,
+        souece_id=video_source_id
     )
     return pip_video

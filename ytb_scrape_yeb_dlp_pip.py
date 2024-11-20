@@ -15,7 +15,7 @@ import json
 import multiprocessing
 import os
 import time
-import numpy as np
+# import numpy as np
 import sys
 import uuid
 
@@ -32,12 +32,10 @@ LIMIT_LAST_COUNT = int(os.getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-target_language = "it"
+target_language = "yue_text"
 
 # 正在处理
-CHANNEL_URL_LIST = ["https://www.youtube.com/@TuttoAndroid/videos",
-                    "https://www.youtube.com/@CiccioGamer89/videos",
-                    "https://www.youtube.com/@DilettaLeotta/videos"]
+CHANNEL_URL_LIST = ["https://www.youtube.com/@Bobtivation/videos"]
 
 def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, pid:int, task_id:str):
     """
@@ -50,11 +48,11 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, pid:int
     :param task_id: 任务ID
     """
     # 大幅度需求
-    channel_url_name = video_urls.channel_url.split('@')[1].split(r"/")[0]
+    # channel_url_name = video_urls.channel_url.split('@')[1].split(r"/")[0]
     # 频道通知开始
     # 数据导入数据库
     index = 0
-    for video_url, duration in zip(video_urls.source_link, video_urls.duration):
+    for video_url, duration, source_id in zip(video_urls.source_link, video_urls.duration, video_urls.source_id):
         if duration == 'NA':
             duration = int(0)
         index += 1
@@ -62,12 +60,12 @@ def import_data_to_db_pip(video_urls:ytb_init_video.Video, pool_num:int, pid:int
             logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_url}")
             time_st = time.time()
             video_object = get_ytb_blogger_url(
-                file_name = channel_url_name,
+                # file_name = channel_url_name,
                 video_url=video_url,
                 language=video_urls.language,
                 duration=int(float(duration)),
                 task_id=task_id,
-                source_id=video_urls.source_id
+                source_id=source_id
             )
             # 将数据更新入库
             # ytb_api.create_video(video_object)
@@ -129,6 +127,7 @@ def ytb_main():
         logger.info(f"Scraper Pipeline > {pid} 当前处理频道: {channel_url} | 语言：{target_language}")
         time_st = time.time()  # 获取采集数据的起始时间
         target_youtuber_channel_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
+        # print(len(target_youtuber_channel_urls))
         if len(target_youtuber_channel_urls) <= 0:
             logger.error("Scraper Pipeline > no watch urls to import.")
             # exit()
