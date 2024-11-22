@@ -15,7 +15,7 @@ https://www.youtube.com/@vtv24/videos
 
 # CHANNEL_URL = "https://www.youtube.com/@failarmy/videos"
                         # blogger_url: str
-def get_ytb_blogger_url(video_url:str, duration:float, language:str, task_id:str, source_id:str)->ytb_model.Video:
+def get_ytb_blogger_url(video_url:str, duration:int, language:str, task_id:str, source_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库模型 
     @Paras video_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
     @Return [Video]
@@ -100,7 +100,7 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     # print(db_video)
     return db_video
 
-def ytb_dlp_format_video(channel_url:str, video_urls:list, language:str) -> ytb_init_video.Video:
+def ytb_dlp_format_video(channel_url:str, video_urls:list, language:str) -> ytb_model.Video:
     """
     格式化视频信息为Video类型
 

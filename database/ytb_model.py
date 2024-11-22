@@ -79,23 +79,25 @@ class Video:
     def __init__(
         self,
         vid: str = None,
-        source_type: int = None,
+        source_type: int = 3,
         cloud_path: str = None,
         id: int = 0,
         position: int = 1,
-        cloud_type: int = None,
+        cloud_type: int = 0,
         source_link: str = None,
-        duration: int = None,
+        duration: int = 0,
         language: str = None,
         status=0,
         lock=0,
         info={},
-        source_id: str = None,
+        source_id: str = "",
+        blogger_url: str = None,
     ):
         self.id = id
         self.vid = vid
         self.position = position
         self.source_type = source_type
+        self.blogger_url = blogger_url
         self.source_link = source_link
         self.duration = duration
         self.cloud_type = cloud_type
@@ -110,7 +112,7 @@ class Video:
         return (
             f"Video(vid={self.vid}, position={self.position}, source_id={self.source_id}, "
             f"source_type={self.source_type}, source_link={self.source_link}, duration={self.duration}, "
-            f"cloud_type={self.cloud_type}, cloud_path={self.cloud_path}, "
+            f"cloud_type={self.cloud_type}, cloud_path={self.cloud_path}, blogger_url={self.blogger_url}, "
             f"language={self.language}, status={self.status}, `lock`={self.lock}, info={self.info})"
         )
     
@@ -120,6 +122,7 @@ class Video:
             "vid": self.vid,
             "position": self.position,
             "source_type": self.source_type,
+            "blogger_url": self.blogger_url,
             "source_link": self.source_link,
             "duration": self.duration,
             "cloud_type": self.cloud_type,
