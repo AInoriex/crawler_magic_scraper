@@ -6,5 +6,5 @@ conf/*
 download/*
 .venv/
 .vscode/
-.env
+.env*
 temp/
