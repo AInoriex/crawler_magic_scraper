@@ -103,9 +103,10 @@ def main_v3():
         try:
             # 解析数据
             logger.info(f"main_v3 > 当前正在解析频道: {channel_url} | 语言：{target_language}")
+            time_1 = time()
             target_youtuber_channel_urls = yt_dlp_read_url_from_file_v3(url=channel_url, language=target_language)
             
-            logger.info(f"main_v3 > 解析{channel_url}完毕, 花费{format_second_to_time_string(spend_scrape_time)}")
+            logger.info(f"main_v3 > 解析{channel_url}完毕, 花费{format_second_to_time_string(time()-time_1)}")
             if len(target_youtuber_channel_urls) <= 0:
                 logger.error("main_v3 > 无资源导入")
                 # continue
@@ -123,8 +124,7 @@ def main_v3():
             exit(1)
         except Exception as e:
             logger.error(f"main_v3 > 频道解析链接失败, {e}")
-            logger.error(e, stack_info=True)
-
+            # logger.error(e, stack_info=True)
             # alarm to Lark Bot
             notice_text = f"[Ytb Scraper | ERROR] 数据采集失败 \
                 \n\t频道信息: {target_language} | {channel_url} \
@@ -137,6 +137,7 @@ def main_v3():
         try:
             # 使用多进程处理入库
             logger.info(f"main_v3 > 频道: {channel_url} | 语言：{target_language} 准备入库")
+            time_2 = time()
             with Pool(5) as pool:
                 # 将列表分成5个子集，分配给每个进程
                 # chunks = np.array_split(target_youtuber_blogger_urls, 5)
@@ -145,13 +146,11 @@ def main_v3():
                 # 列表的长度可能会有剩余的元素，我们将它们分配到最后一个子集中
                 if len(chunks) < 5:
                     chunks.append(target_youtuber_channel_urls[len(chunks)*chunk_size:])
-                time_ed = time.time()
-                spend_scrape_time =  time_ed - time_st  # 采集总时间
                 # 启动进程池中的进程，传递各自的子集和进程ID
                 for pool_num, chunk in enumerate(chunks):
                     # 将各项参数封装为Video对象
                     video_chunk = ytb_dlp_format_video(channel_url, chunk, target_language)
-                    pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, spend_scrape_time, pid, task_id))
+                    pool.apply_async(import_data_to_db_pip, (video_chunk, pool_num, pid, task_id))
                     sleep(10)
                 pool.close()
                 pool.join()  # 等待所有进程结束
@@ -162,7 +161,7 @@ def main_v3():
                 \n\t任务ID: {task_id} \
                 \n\t数据总数量: {total_count} \
                 \n\t数据总时长: {total_duration} \
-                \n\t采集时间: {format_second_to_time_string(time.time() - time_st)} \
+                \n\t采集时间: {format_second_to_time_string(time() - time_2)} \
                 \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
         except KeyboardInterrupt:
@@ -171,7 +170,7 @@ def main_v3():
             exit(1)
         except Exception as e:
             logger.error(f"main_v3 > 入库失败, {e}")
-            logger.error(e, stack_info=True)
+            # logger.error(e, stack_info=True)
 
             # alarm to Lark Bot
             notice_text = f"[Ytb Scraper | ERROR] 数据入库失败 \

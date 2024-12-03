@@ -121,8 +121,8 @@ def import_data_to_db(pid:int, channel_url:tuple, language="unknown"):
 
     except Exception as e:
         # continue_fail_count += 1
-        logger.error(f"Scraper Pipeline > pid {pid} error processing")
-        logger.error(e, stack_info=True)
+        logger.error(f"Scraper Pipeline > pid {pid} error processing, {e}")
+        # logger.error(e, stack_info=True)
 
         # alarm to Lark Bot
         public_ip = get_public_ip()
