@@ -6,12 +6,13 @@ from json import dumps
 from database import ytb_model, ytb_init_video 
 import re
 
-def get_ytb_channel_url(video_url:str, duration:float, language:str, task_id:str)->ytb_model.Video:
+def get_ytb_channel_url(video_url:str, duration:int, language:str, task_id:str, source_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库入库对象
-    :param video_url: 博主url; eg: https://www.youtube.com/@failarmy/videos
+    :param video_url: 博主url eg: https://www.youtube.com/@failarmy/videos
     :param duration: 时长
     :param language: 语言
     :param task_id: 任务id
+    :param source_id: 来源id
     :return: ytb_model.Video
     '''
     # 提取信息
@@ -23,6 +24,7 @@ def get_ytb_channel_url(video_url:str, duration:float, language:str, task_id:str
     # print(" ==================== [DEBUG] get_ytb_channel_url ==================== ")
     # info_dict = {
     # "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
+    # "cloud_save_path": "/QUWAN_DATA/大幅度/Youtuber-{file_name}"
     # }
     # 封装info
     info_dict ={}
@@ -40,7 +42,8 @@ def get_ytb_channel_url(video_url:str, duration:float, language:str, task_id:str
         source_link=str(video_url),
         language=str(language),
         duration=int(duration),
-        info=info
+        info=info,
+        source_id=source_id
     )
     # print(db_video)
     return db_video
@@ -102,14 +105,17 @@ def ytb_dlp_format_video(channel_url:str, video_data:list, language:str) -> ytb_
     # 提取信息
     video_url = []  # 存储视频url列表
     video_duration = []  # 存储视频时长列表
+    video_source_id = []  # 存储视频ID
     for v in video_data:
         video_url.append(v[0])
         video_duration.append(v[1])
+        video_source_id.append(v[2])
 
     pip_video = ytb_init_video.Video(
         channel_url=channel_url,
-        video_url=video_url,
+        source_link=video_url,
         duration=video_duration,
         language=language,
+        souece_id=video_source_id
     )
     return pip_video

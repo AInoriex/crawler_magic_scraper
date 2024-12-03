@@ -43,6 +43,7 @@ def get_download_list(qid=0) -> Video | None:
         status=resp_data["status"],
         lock=resp_data["lock"],
         info=resp_data["info"],
+        source_id=resp_data["source_id"]
     )
     return video
 
