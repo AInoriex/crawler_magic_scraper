@@ -59,7 +59,7 @@ def yt_dlp_read_url_from_file_v3(url:str, language:str="") -> list:
     command = f'yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s %(playlist_channel_id)s" --sleep-requests 1.5 -v {url}'
     output_lines = []
     # 使用 Popen 捕获 yt-dlp 输出
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True)
     # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
     for line in process.stdout:
         print(line, end='')

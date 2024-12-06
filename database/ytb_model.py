@@ -80,18 +80,18 @@ class Video:
         self,
         vid: str = None,
         source_type: int = 3,
-        cloud_path: str = None,
+        cloud_path: str = "",
         id: int = 0,
         position: int = 1,
         cloud_type: int = 0,
-        source_link: str = None,
+        source_link: str = "",
         duration: int = 0,
-        language: str = None,
+        language: str = "",
         status=0,
         lock=0,
         info={},
         source_id: str = "",
-        blogger_url: str = None,
+        blogger_url: str = "",
     ):
         self.id = id
         self.vid = vid

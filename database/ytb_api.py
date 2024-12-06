@@ -1,4 +1,5 @@
 from utils.utime import get_time_stamp
+from utils.logger import logger
 from requests import get, post
 from uuid import uuid4
 from database.ytb_model import Video
@@ -79,24 +80,22 @@ def create_video(video:Video, retry:int=3):
         resp = post(url=url, json=req, timeout=5, verify=True)
         assert resp.status_code == 200
         resp_json = resp.json()
-        print("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
+        logger.debug("create_video > resp detail, status_code:%d, content:%s"%(resp_json["code"], resp_json["msg"]))
         resp_code = resp_json.get("code")
         if resp_code == 0:
-            # print(f"create_video > 创建数据成功 req:{req}, resp:{resp_json}")
-            print(f"create_video > 创建数据成功 vid:{req.get('vid')}, link:{req.get('source_link')}")
+            logger.info(f"create_video > 创建数据成功 vid:{req.get('vid')}, link:{req.get('source_link')}")
         elif resp_code == 25000:
-            print(f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")
+            logger.info(f"create_video > 资源存在, 跳过创建 status_code:{resp_json.get('code')}, content:{resp_json.get('msg')}")
         else:
-            # print(f"create_video > 资源创建失败, req:{req}, resp:{str(resp.content, encoding='utf-8')}")
             raise Exception(f"资源创建失败, req:{req}, resp:{str(resp.content, encoding='utf-8')}")
     except Exception as e:
-        print(f"create_video > 入库处理失败: {e}")
+        logger.error(f"create_video > 入库处理失败: {e}")
         if retry > 0:
-            print(f"create_video > 重新尝试入库, 剩余尝试次数: {retry}")
+            logger.info(f"create_video > 重新尝试入库, 剩余尝试次数: {retry}")
             sleep(1)
             return create_video(video, retry - 1)
         else:
-            print("create_video > 达到最大重试次数，放弃入库")
+            logger.error("create_video > 达到最大重试次数，放弃入库")
             raise e
 
 
