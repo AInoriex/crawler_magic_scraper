@@ -8,10 +8,10 @@ import uuid
 from os import getenv, getpid
 from time import sleep, time
 from random import random, randint
-from database import ytb_api, ytb_init_video
+from database import ytb_api, ytb_model
 from handler.yt_dlp import ytb_dlp_format_video, get_ytb_channel_url
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
-from utils import logger as ulog
+from utils.logger import logger
 from utils.ip import get_local_ip, get_public_ip
 from utils.lark import alarm_lark_text
 from utils.utime import get_now_time_string, format_second_to_time_string
@@ -33,83 +33,83 @@ target_language = "yue_text"
 # 正在处理
 CHANNEL_URL_LIST = ["https://www.youtube.com/@%E5%A8%9C%E5%A8%9C%E5%BE%88%E7%A1%AC/videos"]
 
-def import_data_to_db_pip(video_obj:ytb_init_video.Video, pool_num:int, pid:int, task_id:str):
+def import_data_to_db_pip(video_objs:ytb_model.Video, pool_num:int, pid:int, task_id:str):
     """
     油管信息导入数据库
 
-    :param video_obj: 视频信息 ytb_init_video.Video
-    :param pool_num: 进程编号
+    :param video_urls: 视频信息 Video(tuple, tuple, ...)
+    :param pool_num: 线程编号
+    :param spend_scrape_time: 采集总时间
     :param pid: 进程ID
     :param task_id: 任务ID
     """
-    logger = ulog.init_logger("import_data_to_db_pip")
-
+    # 大幅度需求
+    # channel_url_name = video_urls.channel_url.split('@')[1].split(r"/")[0]
+    # 频道通知开始
     # 数据导入数据库
     index = 0
-    for video_url, duration in zip(video_obj.video_url, video_obj.duration):
+    for video_info in video_objs:
         index += 1
         try:
-            logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_obj.source_link}")
-            time_st = time()
-            # 格式化视频信息
-            # if video_tuple is None:
-            #     logger.error("import_data_to_db_pip > video_url invalid")
-            #     break
+            logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_info.source_link}")
+            time_st = time.time()
             video_object = get_ytb_channel_url(
-                video_url=video_url,
-                language=video_obj.language,
-                duration=float(duration),
-                task_id=task_id
+                # file_name = channel_url_name,
+                video_url=video_info.source_link,
+                language=video_info.language,
+                duration=video_info.duration,
+                task_id=task_id,
+                source_id=video_info.source_id
             )
-
+            # print(video_object)
             # 将数据更新入库
             ytb_api.create_video(video_object)
-            # ytb_api_v2.sign_database(video_object)
+            # time.sleep(0.5)
 
             # 日志记录
-            time_ed = time()
+            time_ed = time.time()
             spend_time = time_ed - time_st
             logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 处理第{index}个数据: {video_object.source_link} 完毕, 花费时间: {spend_time} seconds")
-            
             # alarm to Lark Bot
-            notice_text = f"[Youtube Scraper | DEBUG] 数据已入库. \
+            now_str = get_now_time_string()
+            notice_text = f"[Youtube Scraper | DEBUG] 数据已采集入库. \
                 \n\t进程ID: {pid} \
-                \n\t频道信息: {video_obj.language} | {video_obj.channel_url} \
-                \n\t进程信息: {f'第{pool_num}个进程, 处理第{index}个数据: {video_url}'} \
-                \n\t共处理了{format_second_to_time_string(spend_time)} \
                 \n\t任务ID: {task_id} \
+                \n\t频道信息: {video_object.language} | {video_object.blogger_url} \
+                \n\t线程信息: {f'第{pool_num}个进程, 处理第{index}个数据: {video_object.source_link}'} \
+                \n\t共处理了{format_second_to_time_string(spend_time)} \
                 \n\tIP: {local_ip} | {public_ip} \
-                \n\tTime: {get_now_time_string()}"
-            # alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_DEBUG"), text=notice_text)
-        except KeyboardInterrupt:
-            logger.warning(f"import_data_to_db_pip > pid {pid} interrupted processing, exit.")
-            # pool_num.terminate()  # 直接终止所有子进程
-            # sys.exit(1)  # 退出程序
-            raise KeyboardInterrupt
+                \n\tTime: {now_str}"
+            alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK"), text=notice_text)
         except Exception as e:
             # continue_fail_count += 1
-            logger.error(f"import_data_to_db_pip > 第{pool_num}个进程, 处理第{index}个数据 {video_obj.channel_url} 失败")
+            logger.error(f"import_data_to_db_pip > 第{pool_num}个进程, 处理第{index}个数据 {video_object.source_link} 失败, {e}")
             # logger.error(e, stack_info=True)
             # alarm to Lark Bot
-            notice_text = f"[Youtube Scraper | ERROR] 数据入库失败 \
+            notice_text = f"[Youtube Scraper | ERROR] 数据采集入库失败 \
                 \n\t进程ID: {pid} \
                 \n\t任务ID: {task_id} \
-                \n\t频道信息: {video_obj.language} | {video_obj.channel_url} \
-                \n\t进程信息: {f'pid:{pool_num} | index:{index} | data:{video_url}'} \
+                \n\t频道信息: {video_object.language} | {video_object.blogger_url} \
+                \n\t线程信息: {f'我是第{pool_num}个进程, 处理第{index}个数据: {video_object.source_link}'} \
                 \n\tError: {e} \
                 \n\tIP: {local_ip} | {public_ip} \
-                \n\tTime: {get_now_time_string()}"
-            alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
+                \n\tTime: {now_str}"
+            alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK"), text=notice_text)
+            continue
             # 失败过多直接退出
             # if continue_fail_count > LIMIT_FAIL_COUNT:
-            #     logger.error(f"import_data_to_db_pip > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
+            #     logger.error(f"Scraper Pipeline > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
             #     exit(1)
+        except KeyboardInterrupt:
+            logger.warning(f"Scraper Pipeline > pid {pid} interrupted processing, exit.")
+            pool_num.terminate()  # 直接终止所有子进程
+            sys.exit(1)  # 退出程序
+            raise KeyboardInterrupt
         finally:
-            sleep(randint(1, 3))
+            #time.sleep(1)
             pass
 
 def ytb_main():
-    logger = ulog.init_logger("ytb_main")
     pid = getpid()
     task_id = str(uuid.uuid4())
     if target_language == "":

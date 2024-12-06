@@ -55,27 +55,22 @@ def yt_dlp_read_url_from_file_v3(url:str, language:str="") -> list:
     :return: List[Video,Video]] - 返回包含视频网页链接和时长的列表.格式为   
         (Video(vid=None, position=1, source_id=UCgdiE5jT-77eUMLXn66NLCQ, source_type=3, source_link=https://www.youtube.com/watch?v=XYjL_pXK8V8, duration=328, cloud_type=0, cloud_path=None, language=None, status=0, `lock`=0, info={}))
     """
-    # 目前下载的主要是 webpage_url 和 duration 俩个字段信息，使用 yt-dlp 命令获取视频网页链接和时长
-    # yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s" --sleep-requests 2 -v https://www.youtube.com/@kinitv/videos
-    command = f'yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s" --sleep-requests 2 -v {url}'
+    # 目前下载的主要是 webpage_url 和 duration , playlist_channel_id 三个字段信息，使用 yt-dlp 命令获取视频网页链接和时长
+    command = f'yt-dlp --flat-playlist --print "%(webpage_url)s %(duration)s %(playlist_channel_id)s" --sleep-requests 1.5 -v {url}'
     output_lines = []
     # 使用 Popen 捕获 yt-dlp 输出
-    # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
     # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True, encoding="utf-8")
     for line in process.stdout:
         print(line, end='')
         if line.startswith("https://www.youtube.com"):
             line = str(line.strip().split('\n')[0])
             output_lines.append(line)
-    # stdout, stderr = process.communicate()
     process.wait()
-
     # 错误检查
     if process.stderr:
         error_message = process.stderr.decode('utf-8').strip()
         raise ValueError(f"yt-dlp解析失败, {error_message}")
-    
     output_list = []
     for line in output_lines:
         # 检查每行数据并解析网页链接和视频时长

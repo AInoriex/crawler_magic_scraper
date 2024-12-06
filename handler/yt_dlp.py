@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from json import dumps
-from database import ytb_model, ytb_init_video 
+from database import ytb_model 
 import re
 
 def get_ytb_channel_url(video_url:str, duration:int, language:str, task_id:str, source_id:str)->ytb_model.Video:
@@ -93,14 +93,14 @@ def ytb_dlp_automatic(video_url:tuple,  language:str) -> list:
     # print(db_video)
     return db_video
 
-def ytb_dlp_format_video(channel_url:str, video_data:list, language:str) -> ytb_init_video.Video:
+def ytb_dlp_format_video(channel_url:str, video_data:list, language:str) -> ytb_model.Video:
     """
     格式化视频信息为Video类型
 
     :param channel_url: 博主url;eg:"https://www.youtube.com/@failarmy/videos"
     :param video_data: 完整视频解析数据list(tuple)
     :param language: 语言   
-    :return: ytb_init_video.Video
+    :return: ytb_model.Video
     """
     # 提取信息
     video_url = []  # 存储视频url列表
@@ -111,7 +111,7 @@ def ytb_dlp_format_video(channel_url:str, video_data:list, language:str) -> ytb_
         video_duration.append(v[1])
         video_source_id.append(v[2])
 
-    pip_video = ytb_init_video.Video(
+    pip_video = ytb_model.Video(
         channel_url=channel_url,
         source_link=video_url,
         duration=video_duration,

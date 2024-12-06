@@ -90,10 +90,8 @@ def import_data_to_db(pid:int, channel_url:tuple, language="unknown"):
         time_st = time.time()
         # 油管数据采集
         video_list = get_ytb_channel_url(
-            video_url=channel_url[0],
-            duration=channel_url[1],
+            blogger_url=channel_url,
             language=language,
-            task_id=""
         )
 
         # 油管采集字幕
@@ -115,6 +113,18 @@ def import_data_to_db(pid:int, channel_url:tuple, language="unknown"):
             %(spend_time) \
         )
     
+        # alarm to Lark Bot
+        public_ip = get_public_ip()
+        now_str = get_now_time_string()
+        notice_text = f"[Youtube Scraper | DEBUG] 数据采集完毕. \
+            \n\t进程ID: {pid} \
+            \n\t频道URL: {channel_url} \
+            \n\t频道ID: {''} | 语言: {language} \
+            \n\t共处理了{format_second_to_time_string(spend_time)} \
+            \n\tIP: {local_ip} | {public_ip} \
+            \n\tTime: {now_str}"
+        alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
+
     except KeyboardInterrupt:
         logger.warning(f"Scraper Pipeline > pid {pid} interrupted processing, exit.")
         os._exit(0)
@@ -141,18 +151,6 @@ def import_data_to_db(pid:int, channel_url:tuple, language="unknown"):
         if continue_fail_count > LIMIT_FAIL_COUNT:
             logger.error(f"Scraper Pipeline > pid {pid} unexpectable exit beceuse of too much fail count: {continue_fail_count}")
             exit()
-    else:
-        # alarm to Lark Bot
-        public_ip = get_public_ip()
-        now_str = get_now_time_string()
-        notice_text = f"[Youtube Scraper | DEBUG] 数据采集完毕. \
-            \n\t进程ID: {pid} \
-            \n\t频道URL: {channel_url} \
-            \n\t频道ID: {''} | 语言: {language} \
-            \n\t共处理了{format_second_to_time_string(spend_time)} \
-            \n\tIP: {local_ip} | {public_ip} \
-            \n\tTime: {now_str}"
-        alarm_lark_text(webhook=os.getenv("NOTICE_WEBHOOK"), text=notice_text)
 
 def ytb_main():
     pid = os.getpid()
