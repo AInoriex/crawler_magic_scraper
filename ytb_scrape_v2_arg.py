@@ -5,6 +5,7 @@ from uuid import uuid4
 from os import getpid, getenv
 from sys import argv
 from time import sleep, time
+from traceback import format_exc
 from utils.logger import logger
 from utils.utime import get_now_time_string, format_second_to_time_string
 from utils.lark import alarm_lark_text
@@ -13,7 +14,7 @@ from utils.ip import get_local_ip, get_public_ip
 # 初始化
 local_ip = get_local_ip()
 public_ip = get_public_ip()
-process_num = getenv("PROCESS_NUM")
+process_num = int(getenv("PROCESS_NUM"))
 
 # youtube_search_python
 def main():
@@ -78,13 +79,13 @@ def main_v3():
 
     pid = getpid()
     task_id = str(uuid4())  # 生成任务ID
-
     if len(argv) <= 2:
         print("[ERROR] Too less arguments of urls to scrape.")
         print("[INFO] Example: python ytb_scrape_arg.py yue https://www.youtube.com/@video-df1md")
         exit(0)
     target_language = argv[1]
-    logger.info(f"任务ID:{task_id} | 请检查你的输入信息是否正确, language:{target_language}, url:{argv[2:]}")
+    print("请检查输入信息是否正确：")
+    logger.info(f"任务ID:{task_id} | language:{target_language}, url:{argv[2:]}")
     opt = input(f"\nContinue? (Y/N)")
     if opt not in ["Y", "y", "YES", "yes"]:
         logger.error("[EXIT] bye.")
@@ -126,9 +127,10 @@ def main_v3():
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
             continue
 
+        logger.info(f"main_v3 > 频道: {channel_url} | 语言:{target_language} 准备入库 | 进程数:{process_num}")
+        sleep(5)
         try:
             # 使用多进程处理入库
-            logger.info(f"main_v3 > 频道: {channel_url} | 语言:{target_language} 准备入库 | 进程数:{process_num}")
             time_2 = time()
             pool = Pool(process_num)
             # 将列表分成process_num个子集，分配给每个进程
@@ -141,7 +143,7 @@ def main_v3():
             # 启动进程池中的进程，传递各自的子集和进程ID
             for pool_num, chunk in enumerate(chunks):
                 pool.apply_async(import_data_to_db_pip, (chunk, pool_num, pid, task_id))
-                sleep(10)
+                sleep(5)
             pool.close()
             pool.join()  # 等待所有进程结束
 
@@ -162,7 +164,7 @@ def main_v3():
             exit(1)
         except Exception as e:
             logger.error(f"main_v3 > 入库失败, {e}")
-            # logger.error(e, stack_info=True)
+            logger.error(format_exc())
 
             # alarm to Lark Bot
             notice_text = f"[Ytb Scraper | ERROR] 数据入库失败 \
@@ -171,6 +173,7 @@ def main_v3():
                 \n\tError: {e} \
                 \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
+            logger.error(notice_text)
 
 if __name__ == "__main__":
     main_v3()
