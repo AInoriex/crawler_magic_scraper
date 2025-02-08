@@ -5,10 +5,11 @@ load_dotenv()
 from json import dumps
 from database import ytb_model 
 import re
+from handler.youtube import get_youtube_vid
 
-def get_ytb_channel_url(video_url:str, duration:int, language:str, task_id:str, source_id:str)->ytb_model.Video:
+def format_video_object(video_url:str, duration:int, language:str, task_id:str, source_id:str)->ytb_model.Video:
     ''' 格式化视频信息为数据库入库对象
-    :param video_url: 博主url eg: https://www.youtube.com/@failarmy/videos
+    :param video_url: 视频URL eg: https://www.youtube.com/watch?v=XYjL_pXK8V8
     :param duration: 时长
     :param language: 语言
     :param task_id: 任务id
@@ -16,22 +17,15 @@ def get_ytb_channel_url(video_url:str, duration:int, language:str, task_id:str, 
     :return: ytb_model.Video
     '''
     # 提取信息
-    # print(" ==================== [DEBUG] get_ytb_channel_url ==================== ")
-    # print(f"params > channel_url:{channel_url} language:{language} task_id:{task_id}")
-    pattern = r'v=([^&]+)'
-    vid = re.search(pattern, video_url).group().split('=')[1].split(' ')[0]
-    # print(f"object info > vid:{vid} duration:{duration} channel_url:{channel_url}")
-    # print(" ==================== [DEBUG] get_ytb_channel_url ==================== ")
-    # info_dict = {
-    # "cloud_save_path": "/QUWAN_DATA/Vietnam/Beibuyin/"
-    # "cloud_save_path": "/QUWAN_DATA/大幅度/Youtuber-{file_name}"
-    # }
+    vid = get_youtube_vid(video_url)
+
     # 封装info
     info_dict ={}
     info_dict['cloud_save_path'] = ""
     info_dict['task_id'] = task_id
     info = dumps(info_dict)
 
+    # TODO 改造yaml读取
     db_video = ytb_model.Video(
         id=int(0),
         vid="ytb_" + vid,

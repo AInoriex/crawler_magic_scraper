@@ -8,7 +8,7 @@ import uuid
 from os import getenv, getpid
 from time import sleep, time
 from database import ytb_api, ytb_model
-from handler.yt_dlp import get_ytb_channel_url
+from handler.yt_dlp import format_video_object
 from handler.yt_dlp_save_url_to_file import yt_dlp_read_url_from_file_v3
 from utils.logger import logger
 from utils.ip import get_local_ip, get_public_ip
@@ -27,10 +27,20 @@ LIMIT_LAST_COUNT = int(getenv("LIMIT_LAST_COUNT"))
 # LIMIT_LAST_COUNT = 100
 ''' 连续处理任务限制数 '''
 
-target_language = "yue_text"
+# target_language = "tr" # 土耳其语
+# target_language = "pt" # 葡萄牙语
+# target_language = "nl" # 荷兰语
+# target_language = "sv" # 瑞典语
+# target_language = "ro" # 罗马尼亚语
+# target_language = "cs" # 捷克语
+# target_language = "fi" # 芬兰语
+# target_language = "hr" # 克罗地亚语
+target_language = "da" # 丹麦语
 
 # 正在处理
-CHANNEL_URL_LIST = ["https://www.youtube.com/@%E5%A8%9C%E5%A8%9C%E5%BE%88%E7%A1%AC/videos"]
+CHANNEL_URL_LIST = [
+    "https://www.youtube.com/@NikiTopgaard/videos"
+]
 
 def import_data_to_db_pip(video_objs:ytb_model.Video, pool_num:int, pid:int, task_id:str):
     """
@@ -52,7 +62,7 @@ def import_data_to_db_pip(video_objs:ytb_model.Video, pool_num:int, pid:int, tas
         try:
             logger.info(f"import_data_to_db_pip > 第{pool_num}个进程, 开始处理第{index}个数据: {video_info.source_link}")
             time_st = time()
-            video_object = get_ytb_channel_url(
+            video_object = format_video_object(
                 video_url=video_info.source_link,
                 language=video_info.language,
                 duration=video_info.duration,
@@ -77,7 +87,7 @@ def import_data_to_db_pip(video_objs:ytb_model.Video, pool_num:int, pid:int, tas
                 \n\t共处理了{format_second_to_time_string(spend_time)} \
                 \n\tIP: {local_ip} | {public_ip} \
                 \n\tTime: {now_str}"
-            # alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK"), text=notice_text)
+            # alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_DEBUG"), text=notice_text)
             logger.info(f"import_data_to_db_pip > {notice_text}")
         except Exception as e:
             logger.error(f"import_data_to_db_pip > 第{pool_num}个进程, 处理第{index}个数据 {video_object.source_link} 失败, {e}")
@@ -91,7 +101,7 @@ def import_data_to_db_pip(video_objs:ytb_model.Video, pool_num:int, pid:int, tas
                 \n\tError: {e} \
                 \n\tIP: {local_ip} | {public_ip} \
                 \n\tTime: {now_str}"
-            alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK"), text=notice_text)
+            alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
             continue
         except KeyboardInterrupt:
             logger.warning(f"Scraper Pipeline > pid {pid} interrupted processing, exit.")
@@ -108,6 +118,13 @@ def ytb_main():
     if target_language == "":
         logger.error("[ERROR] please input target language.")
         exit()
+    print(f"<============ 确认输入信息 ============>")
+    print(f"target_language: {target_language} ")
+    print(f"频道数量: {len(CHANNEL_URL_LIST)} ")
+    print(f"频道列表: {CHANNEL_URL_LIST}")
+    print(f"5s后程序继续...")
+    print(f"<======================================>")
+    sleep(5)
     for channel_url in CHANNEL_URL_LIST:
         logger.info(f"ytb_main > 当前处理频道: {channel_url} | 语言：{target_language}")
         if not channel_url:  # 判断channel_url是否获取到链接
@@ -124,7 +141,6 @@ def ytb_main():
              for video_info in target_youtuber_channel_urls])
         # 统计总视频数量
         total_count = len(target_youtuber_channel_urls)
-        print(total_duration, total_count)
         logger.info(f"Scraper Pipeline > 频道:{channel_url}, 总资源数:{total_count}, 总时长:{total_duration}")
         try:
             # 使用多进程处理video_url_list入库 # 创建进程池
@@ -149,16 +165,15 @@ def ytb_main():
                 logger.info(f"ytb_main > 频道:{channel_url}入库处理完毕")
                 
                 # 结束时频道通知飞书
-                now_str = get_now_time_string()
-                notice_text = f"[Youtube Scraper | DEBUG] 采集{channel_url}结束. \
+                notice_text = f"[Youtube Scraper | SUCCESS] 采集{channel_url}成功. \
                     \n\t频道URL: {channel_url} \
                     \n\t语言: {target_language} \
-                    \n\t入库视频数量: {chunk.count} \
-                    \n\t入库时长(小时):{chunk.duration/3600:.2f} \
+                    \n\t入库视频数量: {total_count} \
+                    \n\t入库时长(小时): {total_duration/3600:.2f} \
                     \n\t任务ID: {task_id} \
                     \n\t任务处理时间: {format_second_to_time_string(time() - time_st)} \
-                    \n\t通知时间: {now_str}"
-                alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
+                    \n\t通知时间: {get_now_time_string()}"
+                alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_INFO"), text=notice_text)
         except KeyboardInterrupt:
             # 捕获到 Ctrl+C 时，确保终止所有子进程
             logger.warning("KeyboardInterrupt detected, terminating pool...")
@@ -174,6 +189,8 @@ def ytb_main():
                 \n\t任务处理时间: {format_second_to_time_string(time() - time_st)} \
                 \n\t通知时间: {get_now_time_string()}"
             alarm_lark_text(webhook=getenv("NOTICE_WEBHOOK_ERROR"), text=notice_text)
+        finally:
+            sleep(1)
             
 
 if __name__ == '__main__':
